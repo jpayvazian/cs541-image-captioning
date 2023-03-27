@@ -1,8 +1,6 @@
 import pandas as pd
 import tensorflow as tf
-
-TRAIN_SIZE = 0.8
-IMG_SIZE = 224
+import encoder
 
 if __name__ == "__main__":
     # Load data
@@ -13,12 +11,12 @@ if __name__ == "__main__":
     # Tokenizer
     tokenizer = tf.keras.preprocessing.text.Tokenizer()
     tokenizer.fit_on_texts(captions)
-    # Number unique words in vocab, biggest caption size
+    # Number unique words in vocab (for num classes), biggest caption size (for padding)
     vocab_size = len(tokenizer.word_index) + 1
     max_len = max(len(caption.split()) for caption in captions)
 
     # Train/test split
-    split_idx = int(len(image_files) * TRAIN_SIZE)
+    split_idx = int(len(image_files) * 0.8)
     train_files, test_files = image_files[:split_idx], image_files[split_idx:]
 
     # Create separate df for train/test labels
@@ -27,5 +25,7 @@ if __name__ == "__main__":
     train_labels.reset_index(drop=True)
     test_labels.reset_index(drop=True)
 
-    # TODO: Feature extraction
-    # images = tf.keras.utils.load_img('flickr8k/Images', target_size=(IMG_SIZE,IMG_SIZE))
+    # TODO: Encode captions and pad sequence
+
+    # TODO: Feature extraction (run through resnet)
+    features = encoder.extract_features(image_files)
