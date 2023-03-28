@@ -1,6 +1,7 @@
 import pandas as pd
 import tensorflow as tf
-import encoder
+from encoder import extract_features
+from dataset import FlickrDataset
 
 if __name__ == "__main__":
     # Load data
@@ -25,7 +26,9 @@ if __name__ == "__main__":
     train_labels.reset_index(drop=True)
     test_labels.reset_index(drop=True)
 
-    # TODO: Encode captions and pad sequence
+    # Feature extraction (run through resnet)
+    features = extract_features(image_files)
 
-    # TODO: Feature extraction (run through resnet)
-    features = encoder.extract_features(image_files)
+    # Create dataset to serve as batch generator during training
+    flickr_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_length=max_len,
+                                batch_size=64, features=features)
