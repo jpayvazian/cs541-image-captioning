@@ -60,7 +60,7 @@ class CrossAttention(tf.keras.layers.Layer):
         self.layernorm = tf.keras.layers.LayerNormalization()
         self.add = tf.keras.layers.Add()
 
-    def call(self, seq, context):
+    def call(self, context, seq):
         # Query = output sequence, key/value = image context
         attn, attn_scores = self.mha(query=seq, value=context, return_attention_scores=True)
         # Save attention scores for later visualization
@@ -76,9 +76,9 @@ class FeedForward(tf.keras.layers.Layer):
     def __init__(self, units, dropout_rate):
         super().__init__()
         self.ff = tf.keras.Sequential([
-            tf.keras.layers.Dense(units=2*units, activation='relu'),
-            tf.keras.layers.Dense(units=units),
-            tf.keras.layers.Dropout(rate=dropout_rate)
+            tf.keras.layers.Dense(2*units, activation='relu'),
+            tf.keras.layers.Dense(units),
+            tf.keras.layers.Dropout(dropout_rate)
         ])
         self.layernorm = tf.keras.layers.LayerNormalization()
         self.add = tf.keras.layers.Add()
@@ -99,27 +99,30 @@ class DecoderLayer(tf.keras.layers.Layer):
         super().__init__()
         self.self_attn = CausalSelfAttention(num_heads=num_heads, key_dim=units, dropout=dropout_rate)
         self.cross_attn = CrossAttention(num_heads=num_heads, key_dim=units, dropout=dropout_rate)
-        self.ff = FeedForward(units=units, dropout_rate=dropout_rate)
+        self.ff = FeedForward(units, dropout_rate)
 
-    def call(self, seq, context):
+    def call(self, context, seq):
         seq = self.self_attn(seq)
-        seq = self.cross_attn(seq, context)
+        seq = self.cross_attn(context, seq)
         self.attn_scores = self.cross_attn.attn_scores
 
         return self.ff(seq) #(batch, sequence, channels)
 
-# TODO: Output layer
+# TODO: Improve performance
+#  Set large negative bias for <start> and <pad> tokens
+#  Smart initialization (token dist not uniform)
 class TokenOutput(tf.keras.layers.Layer):
     '''
-    Output layer to generate logit predictions over the vocabulary for each seq position
+    Fully connected output layer to generate probabilities of each token
     '''
-    def __init__(self):
+    def __init__(self, vocab_size):
         super().__init__()
+        self.dense = tf.keras.layers.Dense(vocab_size)
 
-    def call(self):
-        pass
+    def call(self, seq):
+        return self.dense(seq)
 
-# TODO: Assemble all parts
+
 class TransformerDecoder(tf.keras.Model):
     '''
     Transformer decoder 3 parts:
@@ -127,8 +130,15 @@ class TransformerDecoder(tf.keras.Model):
         - DecoderLayer(s)
         - TokenOutput
     '''
-    def __init__(self):
+    def __init__(self, vocab_size, max_length, num_layers, units, num_heads, dropout_rate):
         super().__init__()
+        self.input_layer = SeqEmbedding(vocab_size, max_length, units)
+        self.decoder_layers = [DecoderLayer(units, num_heads, dropout_rate) for n in range(num_layers)]
+        self.output_layer = TokenOutput(vocab_size)
 
-    def call(self):
-        pass
+    def call(self, context, seq):
+        seq = self.input_layer(seq)
+        for decoder_layer in self.decoder_layers:
+            seq = decoder_layer(context, seq)
+
+        return self.output_layer(seq)

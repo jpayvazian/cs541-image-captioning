@@ -21,11 +21,11 @@ class FlickrDataset(tf.keras.utils.Sequence):
     # Get batch of data
     def __getitem__(self, index):
         batch = self.df.iloc[index * self.batch_size:(index + 1) * self.batch_size, :]
-        X1, X2, Y = self.__get_batch(batch)
-        return (X1, X2), Y
+        X_feature, X_seq, Y_seq = self.__get_batch(batch)
+        return (X_feature, X_seq), Y_seq
 
     def __get_batch(self, batch):
-        X1, X2, Y = [], [], []
+        X_feature, X_seq, Y_seq = [], [], []
         image_files = batch['image'].tolist()
 
         # For each image in batch, get extracted features and all associated captions
@@ -40,16 +40,16 @@ class FlickrDataset(tf.keras.utils.Sequence):
                 '''
                 Create multiple training features for each "next word" in sequence
                   e.g for sentence: a b c d with max_length = 5
-                  X2[0],Y[0] = a 0 0 0 0, b
-                  X2[1],Y[1] = a b 0 0 0, c
-                  X2[2],Y[2] = a b c 0 0, d
+                  X_seq[0],Y[0] = a 0 0 0 0, b
+                  X_seq[1],Y[1] = a b 0 0 0, c
+                  X_seq[2],Y[2] = a b c 0 0, d
                 '''
                 for i in range(1, len(seq)):
                     x_seq, y_seq = seq[:i], seq[i]
                     x_seq = tf.keras.preprocessing.sequence.pad_sequences([x_seq], maxlen=self.max_length)[0]
                     y_seq = tf.keras.utils.to_categorical([y_seq], num_classes=self.vocab_size)[0]
-                    X1.append(feature)
-                    X2.append(x_seq)
-                    Y.append(y_seq)
+                    X_feature.append(feature)
+                    X_seq.append(x_seq)
+                    Y_seq.append(y_seq)
 
-        return np.array(X1), np.array(X2), np.array(Y)
+        return np.array(X_feature), np.array(X_seq), np.array(Y_seq)

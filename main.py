@@ -2,6 +2,14 @@ import pandas as pd
 import tensorflow as tf
 from encoder import extract_features
 from dataset import FlickrDataset
+from decoder_transformer import TransformerDecoder
+
+# HYPERPARAMS
+NUM_LAYERS = 2
+EMBEDDING_DIM = 256
+NUM_HEADS = 2
+DROPOUT = 0.1
+
 
 if __name__ == "__main__":
     # Load data
@@ -32,3 +40,7 @@ if __name__ == "__main__":
     # Create dataset to serve as batch generator during training
     flickr_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_length=max_len,
                                 batch_size=64, features=features)
+
+    # Create transformer decoder
+    transformer_decoder = TransformerDecoder(vocab_size=vocab_size, max_length=max_len, num_layers=NUM_LAYERS,
+                                             units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
