@@ -7,24 +7,25 @@ class SeqEmbedding(tf.keras.layers.Layer):
     Adds embedding vectors for each token and sequence position
     Learns positional embeddings rather than using fixed ones
     '''
-    def __init__(self, vocab_size, max_length, embedding_dim):
+    def __init__(self, vocab_size, max_len, embedding_dim):
         '''
         vocab_size: Number unique words (classes) in vocab
-        max_length: Biggest caption size (words) to pad sequences to
+        max_len: Biggest caption size (words) to pad sequences to
         embedding dim: Dimensionality of embedding vector
         mask_zero param to init mask of model which ignores 0s as padding tokens
         '''
         super().__init__()
-        self.pos_embedding = tf.keras.layers.Embedding(input_dim=max_length, output_dim=embedding_dim)
+        self.pos_embedding = tf.keras.layers.Embedding(input_dim=max_len, output_dim=embedding_dim)
         self.token_embedding = tf.keras.layers.Embedding(input_dim=vocab_size, output_dim=embedding_dim, mask_zero=True)
         self.add = tf.keras.layers.Add()
 
     def call(self, seq):
         seq_token = self.token_embedding(seq) #(batch, seq, embedding_dim)
 
-        # Define tensor of positions (0..max_length)
+        # Define tensor of positions (0..max_len)
         seq_pos = tf.range(tf.shape(seq_token)[1])[tf.newaxis, :] #(1, seq)
         seq_pos = self.pos_embedding(seq_pos)  #(1, seq, embedding_dim)
+        seq_pos = tf.tile(seq_pos, [tf.shape(seq_token)[0], 1, 1]) #(batch, seq, embedding_dim)
 
         return self.add([seq_token, seq_pos])
 
@@ -113,7 +114,10 @@ class DecoderLayer(tf.keras.layers.Layer):
 #  Smart initialization (token dist not uniform)
 class TokenOutput(tf.keras.layers.Layer):
     '''
-    Fully connected output layer to generate probabilities of each token
+    Fully connected output layer to generate logits of each token
+    For numerical stability, Softmax activation is omitted
+    from_logits=True used in loss fcn instead
+    Reshape layer to expand the logits dim to match labels
     '''
     def __init__(self, vocab_size):
         super().__init__()
@@ -130,13 +134,15 @@ class TransformerDecoder(tf.keras.Model):
         - DecoderLayer(s)
         - TokenOutput
     '''
-    def __init__(self, vocab_size, max_length, num_layers, units, num_heads, dropout_rate):
+    def __init__(self, vocab_size, max_len, num_layers, units, num_heads, dropout_rate):
         super().__init__()
-        self.input_layer = SeqEmbedding(vocab_size, max_length, units)
+        self.input_layer = SeqEmbedding(vocab_size, max_len, units)
         self.decoder_layers = [DecoderLayer(units, num_heads, dropout_rate) for n in range(num_layers)]
         self.output_layer = TokenOutput(vocab_size)
 
-    def call(self, context, seq):
+    # TODO: Clear keras mask?
+    def call(self, inputs):
+        context, seq = inputs
         seq = self.input_layer(seq)
         for decoder_layer in self.decoder_layers:
             seq = decoder_layer(context, seq)
