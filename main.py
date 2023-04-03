@@ -2,6 +2,7 @@ import pandas as pd
 import tensorflow as tf
 from encoder import extract_features
 from dataset import FlickrDataset
+from decoder import LSTM
 
 if __name__ == "__main__":
     # Load data
@@ -32,3 +33,9 @@ if __name__ == "__main__":
     # Create dataset to serve as batch generator during training
     flickr_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_length=max_len,
                                 batch_size=64, features=features)
+    
+    # features
+    # that variable Jack made is just for iamges i believe...
+    print("Right before the shitshow!")
+    
+    LSTM(vocab_size, max_len, features)
