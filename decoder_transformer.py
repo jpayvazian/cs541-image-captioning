@@ -140,7 +140,6 @@ class TransformerDecoder(tf.keras.Model):
         self.decoder_layers = [DecoderLayer(units, num_heads, dropout_rate) for n in range(num_layers)]
         self.output_layer = TokenOutput(vocab_size)
 
-    # TODO: Clear keras mask?
     def call(self, inputs):
         context, seq = inputs
         seq = self.input_layer(seq)

@@ -7,22 +7,16 @@ from decoder_transformer import TransformerDecoder
 from caption import Captioner
 from utils import masked_loss
 
-# TODO: optimize hyperparams
-NUM_DECODER_LAYERS = 1
-EMBEDDING_DIM = 128
-NUM_HEADS = 2
-DROPOUT = 0.1
-EPOCHS = 1
-BATCH_SIZE = 32
+NUM_DECODER_LAYERS = 2
+EMBEDDING_DIM = 256
+NUM_HEADS = 4
+DROPOUT = 0.5
+EPOCHS = 20
+BATCH_SIZE = 64
 
 if __name__ == "__main__":
     # Load data
-    '''
-    # Since theres 8000img * 5caption * len(max seq), memory/time too big
-    # - Take only (longest) caption per image? Easier to compare metrics that way also instead of averageing between 5
-    # - Or set num steps per epoch to fixed length?
-    '''
-    labels = pd.read_csv('flickr8k/captions_clean.csv')[:1000]
+    labels = pd.read_csv('flickr8k/Labels/captions_clean.csv')
     captions = labels['caption'].tolist()
     image_files = labels['image'].unique().tolist()
 
@@ -58,35 +52,36 @@ if __name__ == "__main__":
     transformer = TransformerDecoder(vocab_size=vocab_size, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
                                              units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
 
-    # TODO: Optimize hyperparam/lr schedule
-
     # Compile decoder
-    transformer.compile(loss=masked_loss, optimizer='adam')
+    transformer.compile(loss=masked_loss, optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4))
 
     # Save model checkpoint
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        filepath=os.path.join('models', 'transformer', 'checkpoint-{epoch}'),
-        save_weights_only = True
+        filepath=os.path.join('models', 'transformer', 'checkpoint'),
+        save_weights_only=True,
+        save_best_only=True
     )
 
-    # Train decoder with checkpoint
+    # Restore checkpoint
     if os.path.isdir("models/transformer"):
-        transformer.load_weights(tf.train.latest_checkpoint('models/transformer')).expect_partial() # suppress warnings
+        transformer.load_weights(tf.train.latest_checkpoint('models/transformer'))
 
-    transformer.fit(
-        flickr_train_data,
-        epochs=EPOCHS,
-        validation_data=flickr_valid_data,
-        callbacks=[checkpoint]
-    )
+    # Train from scratch
+    else:
+        transformer.fit(
+            flickr_train_data,
+            epochs=EPOCHS,
+            validation_data=flickr_valid_data,
+            callbacks=[checkpoint]
+        )
 
     # Generate captions for each image
     captioner = Captioner(features=features, decoder=transformer, tokenizer=tokenizer, max_len=max_len)
 
     # Save captions to .txt file
-    with open('flickr8k/captions_yhat.txt', mode='w') as f:
+    with open('flickr8k/Output/captions_transformer.txt', mode='w') as f:
         f.write('image,caption\n')
-        for img in test_files[:5]:
+        for img in test_files:
             caption = captioner.generate_caption(img)
             f.write(f'{img},{caption}\n')
 
