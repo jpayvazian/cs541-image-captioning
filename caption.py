@@ -15,29 +15,28 @@ class Captioner:
 
     def generate_caption(self, image, temp=0):
         features = self.features[image]
-        seq = self.tokenizer.texts_to_sequences(['<start>'])
-        end = self.tokenizer.texts_to_sequences(['<end>'])[0][0]
+        seq = [self.tokenizer.word_index['<start>']]
+        end = self.tokenizer.word_index['<end>']
 
         for n in range(self.max_len):
-            seq_padded = tf.keras.utils.pad_sequences(seq, self.max_len)
-
-            logits = self.decoder.predict((features, seq_padded), verbose=0)[0,-1,:]
+            seq_padded = tf.keras.utils.pad_sequences([seq], self.max_len)
+            logits = self.decoder.predict((features, seq_padded), verbose=0)[:,-1,:]
 
             # Greedy/sampling
             if temp == 0:
-                yhat = tf.argmax(logits).numpy()
+                yhat = tf.argmax(logits, axis=-1).numpy()[0]
             else:
-                yhat = tf.random.categorical(logits/temp, num_samples=1)
+                yhat = tf.random.categorical(logits/temp, num_samples=1).numpy()[0][0]
 
             if n == self.max_len - 1:
                 yhat = end
 
-            seq[0].append(yhat)
+            seq.append(yhat)
 
             if yhat == end:
                 break
 
-        caption = self.tokenizer.sequences_to_texts(seq)[0]
+        caption = self.tokenizer.sequences_to_texts([seq])[0]
         return " ".join([word for word in caption.split()[1:-1]])
 
     # TODO

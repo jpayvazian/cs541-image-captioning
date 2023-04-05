@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import re
+from collections import Counter
 
 def preprocess_text(text):
     '''
@@ -27,15 +28,33 @@ def flatten_features(features):
     '''
     return dict((k, np.reshape(v, (1, -1, v.shape[3]))) for k, v in features.items())
 
-
+@tf.function
 def masked_loss(y, yhat):
     '''
-    Custom cross entropy loss which uses mask to exclude pad tokens in calculation
+    Custom cross entropy loss which uses mask to exclude pas/<start> tokens in calculation
     Sparse Categorical since labels are integer encodings (not 1-hot)
     '''
-    loss_fcn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    loss = loss_fcn(y, yhat)
-    mask = tf.cast(y != 0, dtype=loss.dtype)
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(y, yhat)
+    mask = (y != 0) & (loss < 1e8)
+    mask = tf.cast(mask, dtype=loss.dtype)
     loss *= mask
 
     return tf.reduce_sum(loss)/tf.reduce_sum(mask)
+
+
+def get_freq(captions, vocab):
+    '''
+    Gets the frequency of each token in the caption labels
+    Sets frequency of <start> token to 0, (pad tokens also excluded since not in original caption list)
+    :return: np.array size=vocab_size where values are token freq, index corresponding to token ID
+    '''
+    counts = Counter(" ".join(captions).split())
+    token_freq = np.zeros(len(vocab) + 1)
+
+    for token, count in counts.items():
+        index = vocab[token]
+        token_freq[index] = count
+
+    token_freq[vocab["<start>"]] = 0
+
+    return token_freq

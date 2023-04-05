@@ -5,13 +5,13 @@ from encoder import extract_features
 from dataset import FlickrDataset
 from decoder_transformer import TransformerDecoder
 from caption import Captioner
-from utils import masked_loss
+from utils import masked_loss, get_freq
 
 NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
 NUM_HEADS = 4
 DROPOUT = 0.5
-EPOCHS = 20
+EPOCHS = 8
 BATCH_SIZE = 64
 
 if __name__ == "__main__":
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     image_files = labels['image'].unique().tolist()
 
     # Tokenizer
-    tokenizer = tf.keras.preprocessing.text.Tokenizer()
+    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
     tokenizer.fit_on_texts(captions)
     # Number unique words in vocab (for num classes), biggest caption size (for padding)
     vocab_size = len(tokenizer.word_index) + 1
@@ -49,7 +49,8 @@ if __name__ == "__main__":
                                 batch_size=BATCH_SIZE, features=features)
 
     # Create transformer decoder
-    transformer = TransformerDecoder(vocab_size=vocab_size, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
+    freq_dist = get_freq(captions, tokenizer.word_index)
+    transformer = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
                                              units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
 
     # Compile decoder

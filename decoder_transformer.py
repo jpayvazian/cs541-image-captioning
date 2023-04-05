@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 # adapted from: https://www.tensorflow.org/tutorials/text/image_captioning
 
 class SeqEmbedding(tf.keras.layers.Layer):
@@ -119,12 +120,27 @@ class TokenOutput(tf.keras.layers.Layer):
     from_logits=True used in loss fcn instead
     Reshape layer to expand the logits dim to match labels
     '''
-    def __init__(self, vocab_size):
+    def __init__(self, freq_dist):
         super().__init__()
-        self.dense = tf.keras.layers.Dense(vocab_size)
+        self.dense = tf.keras.layers.Dense(len(freq_dist))
+        self.freq_dist = freq_dist
+        self.bias = None
 
     def call(self, seq):
-        return self.dense(seq)
+        return self.dense(seq) + self.bias
+
+    def smart_init(self):
+        '''
+        Smart Initialization to improve loss: log(vocab_size) -> -p*log(p)
+        1. Sets high negative bias for tokens the model should never predict (<pad> and <start>)
+        2. Uses token frequency from labels to set optimal bias for starting likelihood distribution
+           This reduces initial loss from entropy of uniform dist to marginal entropy of dist
+        '''
+        p = self.freq_dist / self.freq_dist.sum()
+        p[self.freq_dist == 0] = 1.0 # log(1) == 0
+
+        self.bias = np.log(p)
+        self.bias[self.freq_dist == 0] = -1e9
 
 
 class TransformerDecoder(tf.keras.Model):
@@ -134,11 +150,12 @@ class TransformerDecoder(tf.keras.Model):
         - DecoderLayer(s)
         - TokenOutput
     '''
-    def __init__(self, vocab_size, max_len, num_layers, units, num_heads, dropout_rate):
+    def __init__(self, freq_dist, max_len, num_layers, units, num_heads, dropout_rate):
         super().__init__()
-        self.input_layer = SeqEmbedding(vocab_size, max_len, units)
+        self.input_layer = SeqEmbedding(len(freq_dist), max_len, units)
         self.decoder_layers = [DecoderLayer(units, num_heads, dropout_rate) for n in range(num_layers)]
-        self.output_layer = TokenOutput(vocab_size)
+        self.output_layer = TokenOutput(freq_dist)
+        self.output_layer.smart_init()
 
     def call(self, inputs):
         context, seq = inputs
