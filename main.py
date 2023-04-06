@@ -2,7 +2,9 @@ import pandas as pd
 import tensorflow as tf
 from encoder import extract_features
 from dataset import FlickrDataset
-from decoder import LSTM
+from decoder import baseline
+from decoder import LSTM_attention
+from decoder import attention_LSTM
 
 if __name__ == "__main__":
     # Load data
@@ -38,4 +40,6 @@ if __name__ == "__main__":
     # that variable Jack made is just for iamges i believe...
     print("Right before the shitshow!")
     
-    LSTM(vocab_size, max_len, features)
+    # baseline(vocab_size, max_len) # TODO: idk why the features that jack got dont work here :/
+    # LSTM_attention(vocab_size, max_len)
+    attention_LSTM(features, vocab_size, train_labels, tokenizer)
