@@ -19,8 +19,7 @@ class Captioner:
         end = self.tokenizer.word_index['<end>']
 
         for n in range(self.max_len - 2):
-            seq_padded = tf.keras.utils.pad_sequences([seq], self.max_len)
-            logits = self.decoder.predict((features, seq_padded), verbose=0)[:,-1,:]
+            logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
 
             # Greedy/sampling
             if temp == 0:
