@@ -4,15 +4,16 @@ import os
 from encoder import extract_features
 from dataset import FlickrDataset
 from decoder_transformer import TransformerDecoder
-from caption import Captioner
-from utils import masked_loss, get_freq
+from caption import Captioner, CaptionCallback
+from utils import get_freq
+from eval import masked_loss, masked_acc
 
-NUM_DECODER_LAYERS = 2
+NUM_DECODER_LAYERS = 4
 EMBEDDING_DIM = 256
-NUM_HEADS = 4
+NUM_HEADS = 8
 DROPOUT = 0.5
-EPOCHS = 8
-BATCH_SIZE = 64
+EPOCHS = 20
+BATCH_SIZE = 32
 
 if __name__ == "__main__":
     # Load data
@@ -27,8 +28,8 @@ if __name__ == "__main__":
     vocab_size = len(tokenizer.word_index) + 1
     max_len = max(len(caption.split()) for caption in captions)
 
-    # Train/test/valid split 70/20/10
-    train_idx, test_idx = int(len(image_files) * 0.7), int(len(image_files) * 0.9)
+    # Train/test/valid split 75/15/10
+    train_idx, test_idx = int(len(image_files) * 0.75), int(len(image_files) * 0.9)
     train_files, test_files, valid_files = image_files[:train_idx], image_files[train_idx:test_idx], image_files[test_idx:]
 
     # Create separate df for train/test/valid labels
@@ -54,36 +55,25 @@ if __name__ == "__main__":
                                              units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
 
     # Compile decoder
-    transformer.compile(loss=masked_loss, optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4))
+    transformer.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                        loss=masked_loss, metrics=[masked_acc])
 
-    # Save model checkpoint
-    checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        filepath=os.path.join('models', 'transformer', 'checkpoint'),
-        save_weights_only=True,
-        save_best_only=True
-    )
-
-    # Restore checkpoint
-    if os.path.isdir("models/transformer"):
-        transformer.load_weights(tf.train.latest_checkpoint('models/transformer'))
-
-    # Train from scratch
-    else:
-        transformer.fit(
-            flickr_train_data,
-            epochs=EPOCHS,
-            validation_data=flickr_valid_data,
-            callbacks=[checkpoint]
-        )
-
-    # Generate captions for each image
+    # Create captioner
     captioner = Captioner(features=features, decoder=transformer, tokenizer=tokenizer, max_len=max_len)
 
-    # Save captions to .txt file
-    with open('flickr8k/Output/captions_transformer.txt', mode='w') as f:
-        f.write('image,caption\n')
-        for img in test_files:
-            caption = captioner.generate_caption(img)
-            f.write(f'{img},{caption}\n')
+    # Train model
+    transformer.fit(
+        flickr_train_data,
+        epochs=EPOCHS,
+        validation_data=flickr_valid_data,
+    callbacks=[CaptionCallback(valid_files[0], captioner)])
+    transformer.save_weights("models/transformer")
 
-    #TODO: Evaluate captions with metrics
+    # Evaluation: load model and save captions to .txt file
+    # transformer.load_weights('models/transformer')
+    # print(captioner.generate_caption(test_files[0]))
+    # with open(f'flickr8k/Output/captions_transformer{EPOCHS}.txt', mode='w') as f:
+    #     f.write('image,caption\n')
+    #     for img in test_files:
+    #         caption = captioner.generate_caption(img)
+    #         f.write(f'{img},{caption}\n')

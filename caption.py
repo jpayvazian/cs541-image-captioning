@@ -42,3 +42,18 @@ class Captioner:
         Beam search to keep track of top k captions during generation
         '''
         pass
+
+class CaptionCallback(tf.keras.callbacks.Callback):
+    '''
+    Callback to generate captions during training for a sample image, to help gauge progress
+    Generates with greedy approach and sampling at different temp values for comparison
+    '''
+    def __init__(self, img, captioner):
+        super().__init__()
+        self.img = img
+        self.captioner = captioner
+
+    def on_epoch_end(self, epochs=None, logs=None):
+        print()
+        for t in (0, 0.5, 0.75):
+            print(self.captioner.generate_caption(self.img, temp=t))

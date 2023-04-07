@@ -1,4 +1,3 @@
-import tensorflow as tf
 import numpy as np
 import re
 from collections import Counter
@@ -27,19 +26,6 @@ def flatten_features(features):
     Flattened shape necessary for cross attention layers
     '''
     return dict((k, np.reshape(v, (1, -1, v.shape[3]))) for k, v in features.items())
-
-@tf.function
-def masked_loss(y, yhat):
-    '''
-    Custom cross entropy loss which uses mask to exclude pas/<start> tokens in calculation
-    Sparse Categorical since labels are integer encodings (not 1-hot)
-    '''
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(y, yhat)
-    mask = (y != 0) & (loss < 1e8)
-    mask = tf.cast(mask, dtype=loss.dtype)
-    loss *= mask
-
-    return tf.reduce_sum(loss)/tf.reduce_sum(mask)
 
 
 def get_freq(captions, vocab):
