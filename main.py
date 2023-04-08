@@ -8,11 +8,11 @@ from caption import Captioner, CaptionCallback
 from utils import get_freq
 from eval import masked_loss, masked_acc
 
-NUM_DECODER_LAYERS = 4
+NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
-NUM_HEADS = 8
+NUM_HEADS = 2
 DROPOUT = 0.5
-EPOCHS = 20
+EPOCHS = 10
 BATCH_SIZE = 32
 
 if __name__ == "__main__":
@@ -21,24 +21,25 @@ if __name__ == "__main__":
     captions = labels['caption'].tolist()
     image_files = labels['image'].unique().tolist()
 
-    # Tokenizer
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
-    tokenizer.fit_on_texts(captions)
-    # Number unique words in vocab (for num classes), biggest caption size (for padding)
-    vocab_size = len(tokenizer.word_index) + 1
-    max_len = max(len(caption.split()) for caption in captions)
-
     # Train/test/valid split 75/15/10
     train_idx, test_idx = int(len(image_files) * 0.75), int(len(image_files) * 0.9)
     train_files, test_files, valid_files = image_files[:train_idx], image_files[train_idx:test_idx], image_files[test_idx:]
 
     # Create separate df for train/test/valid labels
     train_labels = labels[labels['image'].isin(train_files)]
+    train_captions = train_labels['caption'].tolist()
     test_labels = labels[labels['image'].isin(test_files)]
     valid_labels = labels[labels['image'].isin(valid_files)]
     train_labels.reset_index(drop=True)
     test_labels.reset_index(drop=True)
     valid_labels.reset_index(drop=True)
+
+    # Tokenizer
+    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
+    tokenizer.fit_on_texts(train_captions)
+    # Number unique words in vocab (for num classes), biggest caption size (for padding)
+    vocab_size = len(tokenizer.word_index) + 1
+    max_len = max(len(caption.split()) for caption in captions)
 
     # Feature extraction (run through resnet)
     features = extract_features(image_files)
@@ -50,7 +51,7 @@ if __name__ == "__main__":
                                 batch_size=BATCH_SIZE, features=features)
 
     # Create transformer decoder
-    freq_dist = get_freq(captions, tokenizer.word_index)
+    freq_dist = get_freq(train_captions, tokenizer.word_index)
     transformer = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
                                              units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
 
