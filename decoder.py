@@ -46,7 +46,8 @@ def baseline(vocab_size, max_len):
 
     print(" the end ! ")
     
-
+# TODO: fine-tune and try to get this stuff working.
+# also identify areas that can (likely) be improved
 class Attention_model(Model):
     def __init__(self, units):
         super(Attention_model, self).__init__()
