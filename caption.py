@@ -14,22 +14,21 @@ class Captioner:
 
     def generate_caption(self, image, k):
         '''
-        Iterate at most max caption length (-2 for <start> and <end>) times:
+        Iterate at most max caption length (-1 for <start>) times:
             For each seq in beam (initially only <start> seq), run seq through model to find top k best next tokens
             Append new tokens to seq and update seq loss, save pairs in temp beam
             After all pairs saved, sort temp beam to keep only top k loss seq to replace beam
             If seq in beam has <end> token, skip running through model and add directly to temp beam
             This way we dont add tokens after <end> and can continue to consider seq without <end> in beam
-            Break early if all k seq in beam have <end> token
+            Break early if best seq in beam has <end> token
         '''
         features = self.features[image]
         start = [self.tokenizer.word_index['<start>']]
         end = self.tokenizer.word_index['<end>']
         beam = [(start, 0.0)]
 
-        for _ in range(self.max_len - 2):
+        for _ in range(self.max_len - 1):
             beam_new = []
-            num_end = 0
             for seq, loss in beam:
                 if seq[-1] != end:
                     logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
@@ -40,12 +39,11 @@ class Captioner:
                         beam_new.append((seq + [idx], loss + scores[idx]))
                 else:
                     beam_new.append((seq, loss))
-                    num_end += 1
 
             beam_new.sort(key=lambda x: x[1], reverse=True)
             beam = beam_new[:k]
 
-            if num_end == k:
+            if beam[0][0][-1] == end:
                 break
 
         return self.tokenizer.sequences_to_texts([beam[0][0][1:-1]])[0]
@@ -63,5 +61,5 @@ class CaptionCallback(tf.keras.callbacks.Callback):
 
     def on_epoch_end(self, epochs=None, logs=None):
         print()
-        print(self.captioner.generate_caption(self.img, k=2))
+        print(self.captioner.generate_caption(self.img, k=1))
         print()

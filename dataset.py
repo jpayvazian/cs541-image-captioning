@@ -41,8 +41,8 @@ class FlickrDataset(tf.keras.utils.Sequence):
             seq = self.tokenizer.texts_to_sequences([caption])[0]
 
             x_seq, y_seq = seq[:-1], seq[1:]
-            x_seq = tf.keras.utils.pad_sequences([x_seq], maxlen=self.max_len)[0]
-            y_seq = tf.keras.utils.pad_sequences([y_seq], maxlen=self.max_len)[0]
+            x_seq = tf.keras.utils.pad_sequences([x_seq], maxlen=self.max_len, padding='post')[0]
+            y_seq = tf.keras.utils.pad_sequences([y_seq], maxlen=self.max_len, padding='post')[0]
             X_feature.append(feature)
             X_seq.append(x_seq)
             Y_seq.append(y_seq)

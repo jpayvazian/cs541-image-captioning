@@ -1,6 +1,5 @@
 import pandas as pd
 import tensorflow as tf
-import os
 from encoder import extract_features
 from dataset import FlickrDataset
 from decoder_transformer import TransformerDecoder
@@ -21,8 +20,8 @@ if __name__ == "__main__":
     captions = labels['caption'].tolist()
     image_files = labels['image'].unique().tolist()
 
-    # Train/test/valid split 75/15/10
-    train_idx, test_idx = int(len(image_files) * 0.75), int(len(image_files) * 0.9)
+    # Train/test/valid split 80/10/10
+    train_idx, test_idx = int(len(image_files) * 0.8), int(len(image_files) * 0.9)
     train_files, test_files, valid_files = image_files[:train_idx], image_files[train_idx:test_idx], image_files[test_idx:]
 
     # Create separate df for train/test/valid labels
@@ -66,15 +65,17 @@ if __name__ == "__main__":
     transformer.fit(
         flickr_train_data,
         epochs=EPOCHS,
+        steps_per_epoch=200,
         validation_data=flickr_valid_data,
-    callbacks=[CaptionCallback(valid_files[0], captioner)])
+        callbacks=[CaptionCallback(valid_files[0], captioner),
+                   tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
+                   tf.keras.callbacks.ReduceLROnPlateau(patience=3)])
     transformer.save_weights("models/transformer")
 
     # Evaluation: load model and save captions to .txt file
     # transformer.load_weights('models/transformer')
-    # print(captioner.generate_caption(test_files[0]))
-    # with open(f'flickr8k/Output/captions_transformer{EPOCHS}.txt', mode='w') as f:
+    # with open(f'flickr8k/Output/captions_transformer.txt', mode='w') as f:
     #     f.write('image,caption\n')
     #     for img in test_files:
-    #         caption = captioner.generate_caption(img)
+    #         caption = captioner.generate_caption(img, 3)
     #         f.write(f'{img},{caption}\n')
