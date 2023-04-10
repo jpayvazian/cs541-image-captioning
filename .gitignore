@@ -1,4 +1,5 @@
-flickr8k/
+flickr8k/Images/
+flickr8k/Features/
 venv/
 models/
 .idea/

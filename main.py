@@ -65,11 +65,8 @@ if __name__ == "__main__":
     transformer.fit(
         flickr_train_data,
         epochs=EPOCHS,
-        steps_per_epoch=200,
         validation_data=flickr_valid_data,
-        callbacks=[CaptionCallback(valid_files[0], captioner),
-                   tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
-                   tf.keras.callbacks.ReduceLROnPlateau(patience=3)])
+        callbacks=[CaptionCallback(valid_files[0], captioner)])
     transformer.save_weights("models/transformer")
 
     # Evaluation: load model and save captions to .txt file
