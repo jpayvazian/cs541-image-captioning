@@ -2,15 +2,17 @@ import tensorflow as tf
 import os
 import pickle
 import numpy as np
+from utils import flatten_features
 
-'''
-Feature extraction (encoder) for images using pretrained CNN Resnet
-Save/load features to .pkl to avoid rerunning this operation
-:param image_files: list of string image file names
-
-:return: dictionary of features for each image
-'''
 def extract_features(image_files):
+    '''
+    Feature extraction (encoder) for images using pretrained CNN Resnet
+    Save/load features to .pkl to avoid rerunning this operation
+    Flatten w.h feature dims for compatibility in decoder
+    :param image_files: list of string image file names
+
+    :return: dictionary of features for each image
+    '''
     if not os.path.isfile("flickr8k/features.pkl"):
         features = {}
         model = tf.keras.applications.ResNet50(include_top=False, weights='imagenet')
@@ -22,6 +24,8 @@ def extract_features(image_files):
             image = tf.keras.applications.resnet50.preprocess_input(image)
             feature = model.predict(image)
             features[file] = feature
+
+        features = flatten_features(features)
 
         # Cache features to avoid having to run multiple times
         with open("flickr8k/features.pkl", "wb") as f:
