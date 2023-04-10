@@ -7,6 +7,7 @@ from decoder_transformer import TransformerDecoder
 from caption import Captioner, CaptionCallback
 from utils import get_freq
 from eval import masked_loss, masked_acc
+from decoder import LSTMDecoder
 
 NUM_DECODER_LAYERS = 4
 EMBEDDING_DIM = 256
@@ -48,7 +49,7 @@ if __name__ == "__main__":
                                 batch_size=BATCH_SIZE, features=features)
     flickr_valid_data = FlickrDataset(df=valid_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
                                 batch_size=BATCH_SIZE, features=features)
-
+    """
     # Create transformer decoder
     freq_dist = get_freq(captions, tokenizer.word_index)
     transformer = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
@@ -58,16 +59,50 @@ if __name__ == "__main__":
     transformer.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                         loss=masked_loss, metrics=[masked_acc])
 
-    # Create captioner
-    captioner = Captioner(features=features, decoder=transformer, tokenizer=tokenizer, max_len=max_len)
-
-    # Train model
+                        # Train model
     transformer.fit(
         flickr_train_data,
         epochs=EPOCHS,
         validation_data=flickr_valid_data,
     callbacks=[CaptionCallback(valid_files[0], captioner)])
     transformer.save_weights("models/transformer")
+    """
+
+    # Create LSTM decoder
+    freq_dist = get_freq(captions, tokenizer.word_index)
+    lstm = LSTMDecoder(max_len=max_len, num_layers=NUM_DECODER_LAYERS, embed_dim=EMBEDDING_DIM,
+                                             units=EMBEDDING_DIM,
+                                             vocab_size=vocab_size,
+                                              dropout_rate=DROPOUT,
+                                              features=features)
+    
+
+    # Compile decoder
+    lstm.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                        loss=masked_loss, metrics=[masked_acc])
+
+    # Create captioner
+    captioner = Captioner(features=features, decoder=lstm, tokenizer=tokenizer, max_len=max_len)
+
+    # Train model
+    lstm.fit(
+        flickr_train_data,
+        epochs=EPOCHS,
+        validation_data=flickr_valid_data,
+    callbacks=[CaptionCallback(valid_files[0], captioner)])
+    lstm.save_weights("models/lstm")
+
+    print("poggers")
+
+    # Evaluation: load model and save captions to .txt file
+    lstm.load_weights('models/transformer')
+    print(captioner.generate_caption(test_files[0]))
+    # with open(f'flickr8k/Output/captions_transformer{EPOCHS}.txt', mode='w') as f:
+    #     f.write('image,caption\n')
+    #     for img in test_files:
+    #         caption = captioner.generate_caption(img)
+    #         f.write(f'{img},{caption}\n')
+
 
     # Evaluation: load model and save captions to .txt file
     # transformer.load_weights('models/transformer')

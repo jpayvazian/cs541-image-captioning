@@ -63,25 +63,59 @@ class Attention_model(Model):
         context_vector = attention_weights * features 
         context_vector = tf.reduce_sum(context_vector, axis=1)  
         return context_vector, attention_weights
-class Decoder(Model):
-    def __init__(self, embed_dim, units, vocab_size):
-        super(Decoder, self).__init__()
+class LSTMDecoder(Model):
+    def __init__(self, num_layers, embed_dim, units, vocab_size, max_len, features, dropout_rate=0.5):
+        super(LSTMDecoder, self).__init__()
+        # TODO: num_layers is smth we can deal w/ later :)
+        # same w/ max_len
+
+        # really, just look @ transformer and base some of my vars to it
+        # since some of the stuff im doing here is likely done better in transformer/even before transformer, like in main.py!
+
         self.units=units
+        self.features=features
         self.attention = Attention_model(self.units) #iniitalise your Attention model with units
         self.embed = tf.keras.layers.Embedding(vocab_size, embed_dim) #build your Embedding layer
-        self.gru = tf.keras.layers.GRU(self.units,return_sequences=True,return_state=True,recurrent_initializer='glorot_uniform')
-        self.d1 = tf.keras.layers.Dense(self.units) #build your Dense layer
-        self.d2 = tf.keras.layers.Dense(vocab_size) #build your Dense layer
-        
+        # self.gru = tf.keras.layers.GRU(self.units,return_sequences=True,return_state=True,recurrent_initializer='glorot_uniform')
 
-    def call(self,x,features, hidden):
-        context_vector, attention_weights = self.attention(features, hidden) #create your context vector & attention weights from attention model
+        # TODO idfk
+        self.lstm = LSTM(256)
+        self.dr1 = Dropout(dropout_rate)
+        # self.add = add([self.lstm])
+        self.de1 = tf.keras.layers.Dense(self.units) #build your Dense layer
+        self.dr2 = Dropout(dropout_rate)
+        self.de2 = tf.keras.layers.Dense(vocab_size, activation='softmax') #build your Dense layer
+        
+        """
+        merged = concatenate([img_features_reshaped,sentence_features],axis=1)
+    sentence_features = LSTM(256)(merged)
+    x = Dropout(0.5)(sentence_features)
+    x = add([x, img_features])
+    x = Dense(128, activation='relu')(x)
+    x = Dropout(0.5)(x)
+    output = Dense(vocab_size, activation='softmax')(x)
+        """
+
+
+        
+        
+        
+    # TODO: cannot have features and hidden here!
+    # may be other solutions... 
+    def call(self,inputs):
+        x, seq = inputs
+        
+        hidden = self.init_state(batch_size=32)
+        context_vector, attention_weights = self.attention(self.features, hidden) #create your context vector & attention weights from attention model
         embed = self.embed(x) # embed your input to shape: (batch_size, 1, embedding_dim)
         embed = tf.concat([tf.expand_dims(context_vector, 1), embed], axis = -1) # Concatenate your input with the context vector from attention layer. Shape: (batch_size, 1, embedding_dim + embedding_dim)
-        output,state = self.gru(embed) # Extract the output & hidden state from GRU layer. Output shape : (batch_size, max_length, hidden_size)
-        output = self.d1(output)
+        output,state = self.lstm(embed) # Extract the output & hidden state from GRU layer. Output shape : (batch_size, max_length, hidden_size)
+        output = self.dr1(output)
+        output = self.de1(output)
+        output = self.dr2(output)
+
         output = tf.reshape(output, (-1, output.shape[2])) # shape : (batch_size * max_length, hidden_size)
-        output = self.d2(output) # shape : (batch_size * max_length, vocab_size)
+        output = self.de2(output) # shape : (batch_size * max_length, vocab_size)
         
         return output, state, attention_weights
     
