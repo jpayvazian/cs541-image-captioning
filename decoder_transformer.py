@@ -110,9 +110,7 @@ class DecoderLayer(tf.keras.layers.Layer):
 
         return self.ff(seq) #(batch, sequence, channels)
 
-# TODO: Improve performance
-#  Set large negative bias for <start> and <pad> tokens
-#  Smart initialization (token dist not uniform)
+
 class TokenOutput(tf.keras.layers.Layer):
     '''
     Fully connected output layer to generate logits of each token

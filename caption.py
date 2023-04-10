@@ -1,11 +1,10 @@
 import tensorflow as tf
+import numpy as np
 
 class Captioner:
     '''
-    Generates image captions using the trained decoder model
+    Generates image captions via beam search using the trained decoder model
     Returns caption without <start> and <end> tags for easier evaluation with captions_clean_tagless
-    Takes greedy approach with temp=0 or sampling approach based on logits if temp>=1
-    Larger temp value will introduce more variance in captions
     '''
     def __init__(self, features, decoder, tokenizer, max_len):
         self.features = features
@@ -13,34 +12,42 @@ class Captioner:
         self.tokenizer = tokenizer
         self.max_len = max_len
 
-    def generate_caption(self, image, temp=0):
+    def generate_caption(self, image, k):
+        '''
+        Iterate at most max caption length (-1 for <start>) times:
+            For each seq in beam (initially only <start> seq), run seq through model to find top k best next tokens
+            Append new tokens to seq and update seq loss, save pairs in temp beam
+            After all pairs saved, sort temp beam to keep only top k loss seq to replace beam
+            If seq in beam has <end> token, skip running through model and add directly to temp beam
+            This way we dont add tokens after <end> and can continue to consider seq without <end> in beam
+            Break early if best seq in beam has <end> token
+        '''
         features = self.features[image]
-        seq = [self.tokenizer.word_index['<start>']]
+        start = [self.tokenizer.word_index['<start>']]
         end = self.tokenizer.word_index['<end>']
+        beam = [(start, 0.0)]
 
-        for n in range(self.max_len - 2):
-            logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
+        for _ in range(self.max_len - 1):
+            beam_new = []
+            for seq, loss in beam:
+                if seq[-1] != end:
+                    logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
+                    scores = tf.math.log(tf.nn.softmax(logits)).numpy()[0]
+                    top_k_idx = np.argsort(scores)[-k:]
 
-            # Greedy/sampling
-            if temp == 0:
-                yhat = tf.argmax(logits, axis=-1).numpy()[0]
-            else:
-                yhat = tf.random.categorical(logits/temp, num_samples=1).numpy()[0][0]
+                    for idx in top_k_idx:
+                        beam_new.append((seq + [idx], loss + scores[idx]))
+                else:
+                    beam_new.append((seq, loss))
 
-            if yhat == end:
+            beam_new.sort(key=lambda x: x[1], reverse=True)
+            beam = beam_new[:k]
+
+            if beam[0][0][-1] == end:
                 break
 
-            seq.append(yhat)
+        return self.tokenizer.sequences_to_texts([beam[0][0][1:-1]])[0]
 
-        return self.tokenizer.sequences_to_texts([seq[1:]])[0]
-
-
-    # TODO
-    def beam_search(self, k):
-        '''
-        Beam search to keep track of top k captions during generation
-        '''
-        pass
 
 class CaptionCallback(tf.keras.callbacks.Callback):
     '''
@@ -54,5 +61,5 @@ class CaptionCallback(tf.keras.callbacks.Callback):
 
     def on_epoch_end(self, epochs=None, logs=None):
         print()
-        for t in (0, 0.5, 0.75):
-            print(self.captioner.generate_caption(self.img, temp=t))
+        print(self.captioner.generate_caption(self.img, k=1))
+        print()
