@@ -43,10 +43,10 @@ def extract_features_vit(image_files):
         image_size = 224
         model = vit.vit_b16(
             image_size = image_size,
+            pretrained = True,
             activation ='sigmoid',
-            pretrained=True,
-            include_top=True,
-            pretrained_top=True)
+            include_top=False,
+            pretrained_top=False)
 
         for file in image_files:
             image = tf.keras.utils.load_img(os.path.join('flickr8k/Images', file), target_size=(224, 224))
