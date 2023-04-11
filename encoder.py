@@ -13,7 +13,7 @@ def extract_features(image_files):
 
     :return: dictionary of features for each image
     '''
-    if not os.path.isfile("flickr8k/features.pkl"):
+    if not os.path.isfile("flickr8k/Features/features.pkl"):
         features = {}
         model = tf.keras.applications.ResNet50(include_top=False, weights='imagenet')
 
@@ -28,12 +28,12 @@ def extract_features(image_files):
         features = flatten_features(features)
 
         # Cache features to avoid having to run multiple times
-        with open("flickr8k/features.pkl", "wb") as f:
+        with open("flickr8k/Features/features.pkl", "wb") as f:
             pickle.dump(features, f)
 
     # If features already cached, load them from disk
     else:
-        with open("flickr8k/features.pkl", "rb") as f:
+        with open("flickr8k/Features/features.pkl", "rb") as f:
             features = pickle.load(f)
 
     return features
