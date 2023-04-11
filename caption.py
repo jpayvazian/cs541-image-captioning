@@ -6,11 +6,12 @@ class Captioner:
     Generates image captions via beam search using the trained decoder model
     Returns caption without <start> and <end> tags for easier evaluation with captions_clean_tagless
     '''
-    def __init__(self, features, decoder, tokenizer, max_len):
+    def __init__(self, features, decoder, tokenizer, max_len, decoder_type):
         self.features = features
         self.decoder = decoder
         self.tokenizer = tokenizer
         self.max_len = max_len
+        self.decoder_type = decoder_type
 
     def generate_caption(self, image, k):
         '''
@@ -31,7 +32,10 @@ class Captioner:
             beam_new = []
             for seq, loss in beam:
                 if seq[-1] != end:
-                    logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
+                    logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)
+                    if self.decoder_type == 'transformer':
+                        logits = logits[:,-1,:]
+
                     scores = tf.math.log(tf.nn.softmax(logits)).numpy()[0]
                     top_k_idx = np.argsort(scores)[-k:]
 
