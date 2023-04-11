@@ -7,6 +7,7 @@ from caption import Captioner, CaptionCallback
 from utils import get_freq
 from eval import masked_loss, masked_acc
 from decoder import LSTMDecoder
+from decoder import make_model
 # from decoder import CustomDataGenerator
 
 NUM_DECODER_LAYERS = 2
@@ -80,36 +81,31 @@ if __name__ == "__main__":
     # TODO: KeyError with above
 
 
-    lstm = LSTMDecoder(max_len=max_len, num_layers=NUM_DECODER_LAYERS, embed_dim=EMBEDDING_DIM,
+    """lstm = LSTMDecoder(max_len=max_len, num_layers=NUM_DECODER_LAYERS, embed_dim=EMBEDDING_DIM,
                                              units=EMBEDDING_DIM,
                                              vocab_size=vocab_size,
                                               dropout_rate=DROPOUT,
-                                              features=features)
+                                              features=features)"""
     
-
+    lstm = make_model(max_len, vocab_size)
+    
+    
     # Compile decoder
     lstm.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-                        loss="sparse_categorical_crossentropy")
+                        loss="sparse_categorical_crossentropy") # "sparse_categorical_crossentropy
 
     # Create captioner
     captioner = Captioner(features=features, decoder=lstm, tokenizer=tokenizer, max_len=max_len)
 
-    # made it here :-)
+    # testing crap from notebook:
 
-    # load data: index up to 5 or 10
-    # epochs to 1 
-    # see how that works
-
-    # TODO garbage below
-    """train_generator = CustomDataGenerator(df=flickr_train_data,X_col='image',y_col='caption',batch_size=BATCH_SIZE,directory="flicker8k/Images",
-                                      tokenizer=tokenizer,vocab_size=vocab_size,max_length=max_len,features=features)"""
 
     # Train model
     lstm.fit(
         flickr_train_data,
-        epochs=1, # EPOCHS
+        epochs=5, # EPOCHS
         validation_data=flickr_valid_data,
-    callbacks=[CaptionCallback(valid_files[0], captioner)], verbose=0)
+    callbacks=[CaptionCallback(valid_files[0], captioner)])
     lstm.save_weights("models/lstm")
     # TODO: this doesn't work...
 
