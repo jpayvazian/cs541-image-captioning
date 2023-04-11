@@ -41,7 +41,7 @@ if __name__ == "__main__":
     max_len = max(len(caption.split()) for caption in captions)
 
     # Feature extraction (run through resnet)
-    features = extract_features(image_files)
+    features = extract_features(image_files, 'vit')
 
     # Create datasets to serve as batch generator during training
     flickr_train_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
