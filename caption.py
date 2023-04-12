@@ -31,7 +31,7 @@ class Captioner:
             beam_new = []
             for seq, loss in beam:
                 if seq[-1] != end:
-                    logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
+                    logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)
                     scores = tf.math.log(tf.nn.softmax(logits)).numpy()[0]
                     top_k_idx = np.argsort(scores)[-k:]
 

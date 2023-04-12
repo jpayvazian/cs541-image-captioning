@@ -8,7 +8,7 @@ from utils import get_freq
 from eval import masked_loss, masked_acc
 from decoder import LSTMDecoder
 from decoder import make_model
-# from decoder import CustomDataGenerator
+import numpy as np
 
 NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
@@ -19,7 +19,7 @@ BATCH_SIZE = 32
 
 if __name__ == "__main__":
     # Load data
-    labels = pd.read_csv('flickr8k/Labels/captions_clean.csv')
+    labels = pd.read_csv('flickr8k/Labels/captions_clean.csv')[:100] # smaller size to test easier
     captions = labels['caption'].tolist()
     image_files = labels['image'].unique().tolist()
 
@@ -36,9 +36,6 @@ if __name__ == "__main__":
     test_labels.reset_index(drop=True)
     valid_labels.reset_index(drop=True)
 
-    # TODO del below
-    # train_labels = train_labels[0:5]
-
     # Tokenizer
     tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
     tokenizer.fit_on_texts(train_captions)
@@ -48,13 +45,15 @@ if __name__ == "__main__":
 
     # Feature extraction (run through resnet)
     features = extract_features(image_files)
+    # (1, 49, 2048) -> (1, 2048)
+    features = dict((k, tf.keras.layers.GlobalAveragePooling2D()(np.expand_dims(v, axis=1)).numpy()) for k, v in features.items())
 
     # Create datasets to serve as batch generator during training
     flickr_train_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
                                 batch_size=BATCH_SIZE, features=features)
     flickr_valid_data = FlickrDataset(df=valid_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
                                 batch_size=BATCH_SIZE, features=features)
-    
+
     """
     # Create transformer decoder
     freq_dist = get_freq(train_captions, tokenizer.word_index)
@@ -78,43 +77,26 @@ if __name__ == "__main__":
 
 
     # Create LSTM decoder
-    # TODO: KeyError with above
+    lstm = make_model(max_len, vocab_size, embed_dim=EMBEDDING_DIM, dropout=DROPOUT, has_attention=False)
 
-
-    """lstm = LSTMDecoder(max_len=max_len, num_layers=NUM_DECODER_LAYERS, embed_dim=EMBEDDING_DIM,
-                                             units=EMBEDDING_DIM,
-                                             vocab_size=vocab_size,
-                                              dropout_rate=DROPOUT,
-                                              features=features)"""
-    
-    lstm = make_model(max_len, vocab_size)
-    
-    
     # Compile decoder
     lstm.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-                        loss="sparse_categorical_crossentropy") # "sparse_categorical_crossentropy
+                        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
 
     # Create captioner
     captioner = Captioner(features=features, decoder=lstm, tokenizer=tokenizer, max_len=max_len)
 
-    # testing crap from notebook:
-
-
     # Train model
     lstm.fit(
         flickr_train_data,
-        epochs=5, # EPOCHS
-        validation_data=flickr_valid_data,
-    callbacks=[CaptionCallback(valid_files[0], captioner)])
+        epochs=10, # EPOCHS
+        validation_data=flickr_valid_data)
+    # callbacks=[CaptionCallback(valid_files[0], captioner)])
     lstm.save_weights("models/lstm")
-    # TODO: this doesn't work...
-
-    print("poggers")
-    exit(0)
 
     # Evaluation: load model and save captions to .txt file
-    lstm.load_weights('models/transformer')
-    print(captioner.generate_caption(test_files[0]))
+    # lstm.load_weights('models/transformer')
+    print(captioner.generate_caption(test_files[0], 1))
     # with open(f'flickr8k/Output/captions_transformer{EPOCHS}.txt', mode='w') as f:
     #     f.write('image,caption\n')
     #     for img in test_files:

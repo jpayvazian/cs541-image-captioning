@@ -8,46 +8,44 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, GlobalAveragePooling2D
 from tensorflow.keras.models import Sequential, Model
 from keras import initializers, regularizers, constraints
 
+# TODO: fix attention!
+def make_model(max_len, vocab_size, embed_dim=256, dropout=0.5, has_attention=False):
 
-# TODO: make a new one
-# basically the same as the tutorial except 
-#1: we can fine-tune it
-#2: it includes attention. can use attention stuff Jack used/find stuff on google!
+    img_input = tf.keras.Input(shape=(2048,))
+    seq_input = tf.keras.Input(shape=(max_len,))
 
-def baseline(vocab_size, max_len):
-
-    input1 = Input(shape=(1920,)) # TODO might not be here
-    input2 = Input(shape=(max_len,)) # TODO might not be here
-
-    img_features = Dense(256, activation='relu')(input1)
-    img_features_reshaped = Reshape((1, 256), input_shape=(256,))(img_features)
-    print("reshapped! but was that correct? TODO: mess around and find out :)") # No error message yet it fails!
-
-    # TODO copy me from tutorial
-    # https://www.kaggle.com/code/quadeer15sh/flickr8k-image-captioning-using-cnns-lstms#Modelling
-
-    sentence_features = Embedding(vocab_size, 256, mask_zero=False)(input2) # 
-
-    print("we made it here!") # good ig
-    #exit(0)
-
-    merged = concatenate([img_features_reshaped,sentence_features],axis=1)
-    sentence_features = LSTM(256)(merged)
-    x = Dropout(0.5)(sentence_features)
-    x = add([x, img_features])
-    x = Dense(128, activation='relu')(x)
-    x = Dropout(0.5)(x)
-    output = Dense(vocab_size, activation='softmax')(x)
-
-    caption_model = Model(inputs=[input1,input2], outputs=output)
-    caption_model.compile(loss='categorical_crossentropy',optimizer='adam')
-
-    # this is using the kaggle model but we can change things up. just get this working first and go from there!
-
-    print(" the end ! ")
     
-# TODO: fine-tune and try to get this stuff working.
-# also identify areas that can (likely) be improved
+
+    img_features = tf.keras.layers.Dense(embed_dim, activation='relu')(img_input)
+    img_features_reshaped = tf.keras.layers.Reshape((1, embed_dim), input_shape=(embed_dim,))(img_features)
+
+    seq_features = tf.keras.layers.Embedding(vocab_size, embed_dim, mask_zero=False)(seq_input)
+    merged = tf.keras.layers.concatenate([img_features_reshaped, seq_features], axis=1)
+
+    # TODO fix this. ideas:
+    # look @ other notebooks/tutorials
+    # play around w this
+    # ...
+    if has_attention:
+        attention = Attention_model(128) # units
+        hidden = tf.zeros((32, 128)) # batch size, units
+        context_vector, attention_weights = attention(merged, hidden) #TODO: how do i implement
+        c = tf.concat([tf.expand_dims(context_vector, 1), merged], axis= -1)
+        seq_features = tf.keras.layers.LSTM(embed_dim)(c)
+    else:
+        seq_features = tf.keras.layers.LSTM(embed_dim)(merged)
+
+    x = tf.keras.layers.Dropout(dropout)(seq_features)
+    x = tf.keras.layers.add([x, img_features])
+    x = tf.keras.layers.Dense(128, activation='relu')(x)
+    x = tf.keras.layers.Dropout(dropout)(x)
+    output= tf.keras.layers.Dense(vocab_size)(x) # Removed softmax since its done in caption generation/loss fcn
+    model = tf.keras.Model(inputs=[img_input, seq_input], outputs = output)
+    
+    return model
+    
+    
+# TODO: again, fix!
 class Attention_model(Model):
     def __init__(self, units):
         super(Attention_model, self).__init__()
@@ -57,179 +55,9 @@ class Attention_model(Model):
         self.units=units
 
     def call(self, features, hidden):
-        # TODO: one of these lines are the imposter
         hidden_with_time_axis = hidden[:, tf.newaxis]
         score = tf.keras.activations.tanh(self.W1(features) + self.W2(hidden_with_time_axis))  
         attention_weights = tf.keras.activations.softmax(self.V(score), axis=1) 
         context_vector = attention_weights * features 
         context_vector = tf.reduce_sum(context_vector, axis=1)  
-        print("yo")
-        exit(0)
         return context_vector, attention_weights
-class LSTMDecoder(Model):
-    def __init__(self, num_layers, embed_dim, units, vocab_size, max_len, features, dropout_rate=0.5):
-        super(LSTMDecoder, self).__init__()
-        # TODO: num_layers is smth we can deal w/ later :)
-        # same w/ max_len
-
-        # really, just look @ transformer and base some of my vars to it
-        # since some of the stuff im doing here is likely done better in transformer/even before transformer, like in main.py!
-
-        self.units=units
-        self.features=features
-        self.attention = Attention_model(self.units) #iniitalise your Attention model with units
-        self.embed = tf.keras.layers.Embedding(vocab_size, embed_dim, mask_zero=False) #build your Embedding layer
-        # self.gru = tf.keras.layers.GRU(self.units,return_sequences=True,return_state=True,recurrent_initializer='glorot_uniform')
-
-
-
-        # TODO 
-        # so i am having huge issues...
-        # let's step back, and just implement the attention and Decoder that Jack showed 
-        # yes... without LSTM...
-        # if it works then we can try builing on top of that i guess.
-
-        # can also just try making a simpler version of jack's transformer and building on top of that cause data might be wack
-        # ^^ i like that plan more tbh.
-
-
-
-        self.lstm = LSTM(embed_dim)
-        self.dr1 = Dropout(dropout_rate)
-
-        # self.add = add([self.lstm])
-        self.de1 = tf.keras.layers.Dense(self.units, activation='relu') #build your Dense layer
-        self.dr2 = Dropout(dropout_rate)
-        self.de2 = tf.keras.layers.Dense(vocab_size, activation='softmax') #build your Dense layer
-        
-        """
-        merged = concatenate([img_features_reshaped,sentence_features],axis=1)
-    sentence_features = LSTM(256)(merged)
-    x = Dropout(0.5)(sentence_features)
-    x = add([x, img_features])
-    x = Dense(128, activation='relu')(x)
-    x = Dropout(0.5)(x)
-    output = Dense(vocab_size, activation='softmax')(x)
-        """
-
-
-        
-        
-        
-    # TODO: cannot have features and hidden here!
-    # may be other solutions... 
-    def call(self,inputs):
-        
-
-        images, labels = inputs
-        # tf.print(tf.shape(x))
-        
-        # hidden = self.init_state(batch_size=32) # TODO: is this a problem? yes! absolutely! we need to instead set a variable to hidden at the end or smth :p
-
-        # context_vector, attention_weights = self.attention(self.features, hidden) #TODO: there is an issue here. could b with shapes/data, or other crap!
-
-        
-        img_features = Dense(256, activation='relu')(images)
-
-        sentence_features = self.embed(labels) # embed your input to shape: (batch_size, 1, embedding_dim)
-        merged = concatenate([img_features,sentence_features],axis=1)
-
-        # print("hello")
-        # exit(0)
-
-        # embed = tf.concat([tf.expand_dims(context_vector, 1), embed], axis = -1) # Concatenate your input with the context vector from attention layer. Shape: (batch_size, 1, embedding_dim + embedding_dim)
-        output = self.lstm(merged) # Extract the output & hidden state from GRU layer. Output shape : (batch_size, max_length, hidden_size)
-        
-        output = self.dr1(output)
-
-        output = add([output, img_features])
-        
-        output = self.de1(output)
-        
-        output = self.dr2(output)
-        
-        output = self.de2(output) # shape : (batch_size * max_length, vocab_size)
-
-        
-
-        #self.hidden = state
-
-        return output
-        # return output, state, attention_weights
-    
-    def init_state(self, batch_size):
-        return tf.zeros((batch_size, self.units))
-
-def attention_LSTM(features, vocab_size, train_labels, tokenizer):
-    sample_cap_batch = train_labels
-    embedding_dim = 256  # TODO is this correct?
-    units = 512 # TODO: is this correct???
-    decoder=Decoder(embedding_dim, units, vocab_size) # TODO: test this
-    # idt this decoder even has an LSTM layer... we can worry about that later! for now, just see if we can at least get this code to RUN
-
-
-    hidden = decoder.init_state(batch_size=sample_cap_batch.shape[0])
-    # dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * sample_cap_batch.shape[0], 1)
-    dec_input = tf.expand_dims([0] * sample_cap_batch.shape[0], 1)
-
-    predictions, hidden_out, attention_weights= decoder(dec_input, features, hidden)
-    print('Feature shape from Encoder: {}'.format(features.shape)) #(batch, 8*8, embed_dim)
-    print('Predcitions shape from Decoder: {}'.format(predictions.shape)) #(batch,vocab_size)
-    print('Attention weights shape from Decoder: {}'.format(attention_weights.shape)) #(batch, 8*8, embed_dim)
-
-# Garbage
-
-"""class CustomDataGenerator(Sequence):
-    
-    def __init__(self, df, X_col, y_col, batch_size, directory, tokenizer, 
-                 vocab_size, max_length, features,shuffle=True):
-    
-        self.df = df.copy()
-        self.X_col = X_col
-        self.y_col = y_col
-        self.directory = directory
-        self.batch_size = batch_size
-        self.tokenizer = tokenizer
-        self.vocab_size = vocab_size
-        self.max_length = max_length
-        self.features = features
-        self.shuffle = shuffle
-        self.n = len(self.df)
-        
-    def on_epoch_end(self):
-        if self.shuffle:
-            self.df = self.df.sample(frac=1).reset_index(drop=True)
-    
-    def __len__(self):
-        return self.n // self.batch_size
-    
-    def __getitem__(self,index):
-    
-        batch = self.df.iloc[index * self.batch_size:(index + 1) * self.batch_size,:]
-        X1, X2, y = self.__get_data(batch)        
-        return (X1, X2), y
-    
-    def __get_data(self,batch):
-        
-        X1, X2, y = list(), list(), list()
-        
-        images = batch[self.X_col].tolist()
-           
-        for image in images:
-            feature = self.features[image][0]
-            
-            captions = batch.loc[batch[self.X_col]==image, self.y_col].tolist()
-            for caption in captions:
-                seq = self.tokenizer.texts_to_sequences([caption])[0]
-
-                for i in range(1,len(seq)):
-                    in_seq, out_seq = seq[:i], seq[i]
-                    in_seq = pad_sequences([in_seq], maxlen=self.max_length)[0]
-                    out_seq = to_categorical([out_seq], num_classes=self.vocab_size)[0]
-                    X1.append(feature)
-                    X2.append(in_seq)
-                    y.append(out_seq)
-            
-        X1, X2, y = np.array(X1), np.array(X2), np.array(y)
-                
-        return X1, X2, y"""
