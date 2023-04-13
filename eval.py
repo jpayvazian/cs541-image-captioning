@@ -5,15 +5,13 @@ from pycocoevalcap.meteor.meteor import Meteor
 from pycocoevalcap.rouge.rouge import Rouge
 from pycocoevalcap.spice.spice import Spice
 import json
-
-
-
-
+import csv
 
 # TODO:
 #  - BLEU1-4, ROUGE-L, METEOR, CIDEr, SPICE
 #  - Baseline evaluation
 #  - Attention visualization]
+
 
 
 
@@ -42,3 +40,87 @@ def masked_acc(y, yhat):
     y = tf.cast(y, yhat.dtype)
     correct = tf.cast(yhat == y, mask.dtype)
     return tf.reduce_sum(correct * mask)/tf.reduce_sum(mask)
+
+def bleu():
+        scorer = Bleu(n=4)
+        score, scores = scorer.compute_score(labels, output)
+
+        print('bleu = %s' % score)
+
+def cider():
+    scorer = Cider()
+    score, scores = scorer.compute_score(labels, output)
+    
+    print('cider = %s' % score)
+
+def meteor():
+    scorer = Meteor()
+    score, scores = scorer.compute_score(labels, output)
+
+    print('cider = %s' % score)
+
+def rouge():
+    scorer = Rouge()
+    score, scores = scorer.compute_score(gts, res)
+    print('rouge = %s' % score)
+
+def spice():
+    scorer = Spice()
+    score, scores = scorer.compute_score(gts, res)
+    print('spice = %s' % score)
+
+def make_labels_json(inpath, outpath):
+
+        #dictionary
+        data = {}
+
+        #use csv reader
+        with open(inpath,encoding='utf-8') as csvf:
+            csvReader = csv.DictReader(csvf)
+
+            i = 0
+            caption_array = []
+            #convert each row into a dictionary
+            for rows in csvReader:
+                # i +=1
+                # print(i)
+                # if i % 5 != 0:
+                #       caption_array = []
+                key = rows['image']
+                data[key] = caption_array.append(rows['caption'])
+                print(data[key])
+        
+         # function to dump data
+        with open(outpath, 'w', encoding='utf-8') as jsonf:
+            jsonf.write(json.dumps(data, indent=4))
+
+if __name__ == "__main__":
+
+     #make function so that you can load all seperately, use 75_1 as example
+
+    #load in the output and labels
+    csv_file = r'flickr8k/Labels/captions_test75.csv'
+    json_file = r'flickr8k/Output/captions_transformer75_1.json'
+
+    #.txt to json conversion
+    #one for labels
+
+    make_labels_json(csv_file, json_file)
+   
+
+
+    #one for outputs
+
+    #lets pretend we do that lol
+
+
+
+    #have to duplicate the produced labels by 5
+    #Doesn't look like I have to do this lol
+    #{"1909090": ["train traveling down a track,,,"]}
+
+
+
+
+
+
