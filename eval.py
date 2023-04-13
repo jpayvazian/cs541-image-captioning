@@ -1,8 +1,22 @@
 import tensorflow as tf
+from pycocoevalcap.bleu.bleu import Bleu
+from pycocoevalcap.cider.cider import Cider
+from pycocoevalcap.meteor.meteor import Meteor
+from pycocoevalcap.rouge.rouge import Rouge
+from pycocoevalcap.spice.spice import Spice
+import json
+
+
+
+
+
 # TODO:
 #  - BLEU1-4, ROUGE-L, METEOR, CIDEr, SPICE
 #  - Baseline evaluation
-#  - Attention visualization
+#  - Attention visualization]
+
+
+
 
 @tf.function
 def masked_loss(y, yhat):
