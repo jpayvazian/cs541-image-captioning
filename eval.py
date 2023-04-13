@@ -101,11 +101,15 @@ def make_output_json(inpath, outpath):
 
     with open(inpath) as fh:
           for line in fh:
-               image, caption = line.split(",")
+               image, caption = line.strip().split(",")
                dict[image] = caption
+    
+    del dict['image']
     
     with open(outpath, 'w', encoding= 'utf-8') as jsonf:
          jsonf.write(json.dumps(dict, indent=4))
+    
+
 
 def print_metrics(labels, output):
     bleu(labels, output)
