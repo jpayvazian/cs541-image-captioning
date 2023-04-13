@@ -41,32 +41,32 @@ def masked_acc(y, yhat):
     correct = tf.cast(yhat == y, mask.dtype)
     return tf.reduce_sum(correct * mask)/tf.reduce_sum(mask)
 
-def bleu():
+def bleu(labels, output):
         scorer = Bleu(n=4)
         score, scores = scorer.compute_score(labels, output)
 
         print('bleu = %s' % score)
 
-def cider():
+def cider(labels, output):
     scorer = Cider()
     score, scores = scorer.compute_score(labels, output)
     
     print('cider = %s' % score)
 
-def meteor():
+def meteor(labels, output):
     scorer = Meteor()
     score, scores = scorer.compute_score(labels, output)
 
     print('cider = %s' % score)
 
-def rouge():
+def rouge(labels, output):
     scorer = Rouge()
-    score, scores = scorer.compute_score(gts, res)
+    score, scores = scorer.compute_score(labels, output)
     print('rouge = %s' % score)
 
-def spice():
+def spice(labels, output):
     scorer = Spice()
-    score, scores = scorer.compute_score(gts, res)
+    score, scores = scorer.compute_score(labels, output)
     print('spice = %s' % score)
 
 def make_labels_json(inpath, outpath):
@@ -82,17 +82,37 @@ def make_labels_json(inpath, outpath):
             caption_array = []
             #convert each row into a dictionary
             for rows in csvReader:
-                # i +=1
-                # print(i)
-                # if i % 5 != 0:
-                #       caption_array = []
+                if i % 5 == 0:
+                      caption_array = []
                 key = rows['image']
-                data[key] = caption_array.append(rows['caption'])
-                print(data[key])
+                caption_array.append(rows['caption'])
+                data[key] = caption_array
+                i +=1
         
          # function to dump data
         with open(outpath, 'w', encoding='utf-8') as jsonf:
             jsonf.write(json.dumps(data, indent=4))
+    
+
+def make_output_json(inpath, outpath):
+     
+    #create dictionary
+    dict = {}
+
+    with open(inpath) as fh:
+          for line in fh:
+               image, caption = line.split(",")
+               dict[image] = caption
+    
+    with open(outpath, 'w', encoding= 'utf-8') as jsonf:
+         jsonf.write(json.dumps(dict, indent=4))
+
+def print_metrics(labels, output):
+    bleu(labels, output)
+    cider(labels, output)
+    meteor(labels, output)
+    rouge(labels, output)
+    spice(labels, output)
 
 if __name__ == "__main__":
 
@@ -100,24 +120,30 @@ if __name__ == "__main__":
 
     #load in the output and labels
     csv_file = r'flickr8k/Labels/captions_test75.csv'
-    json_file = r'flickr8k/Output/captions_transformer75_1.json'
+    label_json = r'flickr8k/Output/captions_transformer75_1.json'
 
-    #.txt to json conversion
-    #one for labels
+    txt_file = r'flickr8k/Output/captions_transformer75_1.txt'
+    output_json = r'flickr8k/Output/captions_test75.json'
 
-    make_labels_json(csv_file, json_file)
+    #labels to json conversion
+    make_labels_json(csv_file, label_json)
+    
+    #output to json conversion
+    make_output_json(txt_file, output_json)
+
+    #evaluation on metrics
+    with open('flickr8k/Output/captions_transformer75_1.json', 'r') as file:
+         labels = json.load(file)
+    
+    with open('flickr8k/Output/captions_test75.json', 'r') as file:
+         output = json.load(file)
+    
+    print_metrics(labels, output)
+
+
    
 
 
-    #one for outputs
-
-    #lets pretend we do that lol
-
-
-
-    #have to duplicate the produced labels by 5
-    #Doesn't look like I have to do this lol
-    #{"1909090": ["train traveling down a track,,,"]}
 
 
 
