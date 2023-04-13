@@ -6,7 +6,6 @@ from decoder_transformer import TransformerDecoder
 from caption import Captioner, CaptionCallback
 from utils import get_freq
 from eval import masked_loss, masked_acc
-from decoder import LSTMDecoder
 from decoder import make_model
 import numpy as np
 
@@ -77,7 +76,7 @@ if __name__ == "__main__":
 
 
     # Create LSTM decoder
-    lstm = make_model(max_len, vocab_size, embed_dim=EMBEDDING_DIM, dropout=DROPOUT, has_attention=False)
+    lstm = make_model(features, max_len, vocab_size, embed_dim=EMBEDDING_DIM, dropout=DROPOUT, has_attention=False)
 
     # Compile decoder
     lstm.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
