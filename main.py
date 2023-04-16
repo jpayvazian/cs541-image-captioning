@@ -8,6 +8,7 @@ from utils import get_freq
 from eval import masked_loss, masked_acc
 from decoder import make_model
 import numpy as np
+from decoder import Decoder_model 
 
 NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
@@ -15,10 +16,11 @@ NUM_HEADS = 2
 DROPOUT = 0.5
 EPOCHS = 10
 BATCH_SIZE = 32
+UNITS = 128
 
 if __name__ == "__main__":
     # Load data
-    labels = pd.read_csv('flickr8k/Labels/captions_clean.csv')[:100] # smaller size to test easier
+    labels = pd.read_csv('flickr8k/Labels/captions_clean.csv')
     captions = labels['caption'].tolist()
     image_files = labels['image'].unique().tolist()
 
@@ -75,8 +77,22 @@ if __name__ == "__main__":
     transformer.save_weights("models/transformer")"""
 
 
+    # For attention LSTM... feature shape is (64, 64, 256)
+    # and it CLEARLY is encoded... 
+    # TODO: try to replicate this!
+
+    # new TODO:
+
+    # show it to jack see what his thoughts are.
+    # TBH they look less like features. and more like train data... but regardless not at all what we have
+
+
+
     # Create LSTM decoder
-    lstm = make_model(features, max_len, vocab_size, embed_dim=EMBEDDING_DIM, dropout=DROPOUT, has_attention=False)
+    img_input = tf.keras.Input(shape=(2048,))
+    seq_input = tf.keras.Input(shape=(max_len,))
+    lstm = Decoder_model(UNITS, max_len, EMBEDDING_DIM, vocab_size, DROPOUT)
+    lstm = tf.keras.Model(inputs=[img_input, seq_input], output=lstm.output) # TODO
 
     # Compile decoder
     lstm.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
