@@ -72,57 +72,72 @@ class Attention_model(Model):
         context_vector = attention_weights * features 
         context_vector = tf.reduce_sum(context_vector, axis=1)  
 
-        exit(0)
-
         return context_vector, attention_weights
     
-class Decoder_model(Model):
-    def __init__(self, units, max_len, embed_dim, vocab_size, dropout):
-        super(Decoder_model, self).__init__()
+class Decoder(Model):
+    def __init__(self, units, max_len, embed_dim, vocab_size, dropout, has_attention):
+        super(Decoder, self).__init__()
         self.units = units
         self.max_len = max_len
         self.embed_dim = embed_dim
         self.vocab_size = vocab_size 
         self.dropout = dropout
+        self.has_attention = has_attention
+        self.hidden = tf.zeros((32, self.units)) # TODO we can do better than this
 
+        self.attention = Attention_model(self.units)
 
-        # self.dense1 = tf.keras.layers.Dense(self.embed_dim, activation='relu')
+        self.dense1 = tf.keras.layers.Dense(self.embed_dim, activation='relu')
         self.embedding = tf.keras.layers.Embedding(self.vocab_size, self.embed_dim, mask_zero=False)
         self.lstm = tf.keras.layers.LSTM(self.embed_dim)
         self.dropout1 = tf.keras.layers.Dropout(self.dropout)
-        self.dense2 = tf.keras.layers.Dense(128, activation='relu')
+        self.dense2 = tf.keras.layers.Dense(self.units, activation='relu')
         self.dropout2 = tf.keras.layers.Dropout(self.dropout)
         self.dense3 = tf.keras.layers.Dense(self.vocab_size)
 
     def call(self, inputs):
         img_features, seq_input = inputs
-        
 
+        print(img_features.shape) #some varying number, 2048
+        print(seq_input.shape) #some varying number, max_len
         
-
-        # img_features = self.dense1(img_input)
+        
+        
+        img_features = self.dense1(img_features)
         img_features_reshaped = tf.keras.layers.Reshape((1, self.embed_dim), input_shape=(self.embed_dim,))(img_features)
 
         seq_features = self.embedding(seq_input)
         merged = tf.keras.layers.concatenate([img_features_reshaped, seq_features], axis=1)
 
+        print(img_features_reshaped.shape)
+        exit(0)
+
         # TODO fix this. ideas:
         # look @ other notebooks/tutorials
         # play around w this
         # ...
-        """if has_attention:
-            
-
-            attention = Attention_model(128) # units
+        if self.has_attention:
             # TODO: idt this is what hidden should be chief
-            context_vector, attention_weights = attention(inputs, hidden) #TODO: how do i implement
-            c = tf.concat([tf.expand_dims(context_vector, 1), merged], axis= -1)
-            seq_features = tf.keras.layers.LSTM(embed_dim)(c)
-        else:"""
-        seq_features = self.lstm(merged)
+            #print(merged.shape) # the fuck is this shape. idt we want to use merged!
+            #print(img_features_reshaped.shape)
+            #print(seq_features.shape)
+            context_vector, attention_weights = self.attention(inputs, self.hidden) #TODO: how do i implement
+            print("SHAPES")
+            print(img_features_reshaped.shape)
+            print(context_vector.shape)
+            c = tf.concat([tf.expand_dims(context_vector, 1), img_features_reshaped], axis= 0) # TODO: error here with dimensions! 
+            #print(c.shape)
+            #print(seq_features.shape)
+            # exit(0)
+            # for now :| ignore sequences i guess TODO fix that~
+            #merged = tf.keras.layers.concatenate([c, seq_features], axis=1)
+            seq_features = tf.keras.layers.LSTM(self.embed_dim)(c)
+            
+        else:
+            seq_features = self.lstm(merged)
 
         x = self.dropout1(seq_features)
-        x = tf.keras.layers.add([x, img_features])
+        x = tf.keras.layers.add([x, img_features]) # TODO issue here w/ different batch sizes :/
         x = self.dense2(x)
         x = self.dropout2(x)
         output = self.dense3(x) # Removed softmax since its done in caption generation/loss fcn
