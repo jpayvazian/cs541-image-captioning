@@ -6,9 +6,9 @@ from decoder_transformer import TransformerDecoder
 from caption import Captioner, CaptionCallback
 from utils import get_freq
 from eval import masked_loss, masked_acc
-from decoder import make_model
 import numpy as np
-from decoder import Decoder 
+from decoder import Decoder_Baseline
+from decoder import Decoder_Attention
 
 NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     # Feature extraction (run through resnet)
     features = extract_features(image_files)
     # (1, 49, 2048) -> (1, 2048)
-    features = dict((k, tf.keras.layers.GlobalAveragePooling2D()(np.expand_dims(v, axis=1)).numpy()) for k, v in features.items())
+    features = dict((k, tf.keras.layers.GlobalAveragePooling2D()(np.expand_dims(v, axis=1)).numpy()) for k, v in features.items()) # TODO Comment out for attention??
 
     # Create datasets to serve as batch generator during training
     flickr_train_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
@@ -77,12 +77,14 @@ if __name__ == "__main__":
     transformer.save_weights("models/transformer")"""
 
 
-
     # Create LSTM decoder
-    img_input = tf.keras.Input(shape=(2048,))
-    seq_input = tf.keras.Input(shape=(max_len,))
-    lstm = Decoder(UNITS, max_len, EMBEDDING_DIM, vocab_size, DROPOUT, has_attention=False)
-    # lstm = tf.keras.Model(inputs=[img_input, seq_input], output=lstm.output) # TODO
+    
+    lstm = Decoder_Baseline(UNITS, max_len, EMBEDDING_DIM, vocab_size, DROPOUT, has_attention=False)
+    # lstm = Decoder_Attention(EMBEDDING_DIM, UNITS, vocab_size)
+
+    # dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * BATCH_SIZE, 1)
+
+    # lstm.x = dec_input
 
     # Compile decoder
     lstm.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
@@ -90,6 +92,7 @@ if __name__ == "__main__":
 
     # Create captioner
     captioner = Captioner(features=features, decoder=lstm, tokenizer=tokenizer, max_len=max_len)
+    
 
     lstm.fit(
         flickr_train_data,

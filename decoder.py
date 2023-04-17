@@ -61,7 +61,8 @@ class Attention_model(Model):
         self.units=units
 
     def call(self, inputs, hidden):
-        features, seq = inputs
+        # features, seq = inputs
+        features = inputs
         features = tf.keras.layers.Dense(256)(features)
 
         # TODO: we are getting the big print-out error here!
@@ -74,9 +75,9 @@ class Attention_model(Model):
 
         return context_vector, attention_weights
     
-class Decoder(Model):
+class Decoder_Baseline(Model):
     def __init__(self, units, max_len, embed_dim, vocab_size, dropout, has_attention):
-        super(Decoder, self).__init__()
+        super(Decoder_Baseline, self).__init__()
         self.units = units
         self.max_len = max_len
         self.embed_dim = embed_dim
@@ -98,19 +99,12 @@ class Decoder(Model):
     def call(self, inputs):
         img_features, seq_input = inputs
 
-        print(img_features.shape) #some varying number, 2048
-        print(seq_input.shape) #some varying number, max_len
-        
-        
-        
         img_features = self.dense1(img_features)
         img_features_reshaped = tf.keras.layers.Reshape((1, self.embed_dim), input_shape=(self.embed_dim,))(img_features)
 
         seq_features = self.embedding(seq_input)
         merged = tf.keras.layers.concatenate([img_features_reshaped, seq_features], axis=1)
 
-        print(img_features_reshaped.shape)
-        exit(0)
 
         # TODO fix this. ideas:
         # look @ other notebooks/tutorials
@@ -144,3 +138,44 @@ class Decoder(Model):
         return output
 
 
+class Decoder_Attention(Model):
+    def __init__(self, embed_dim, units, vocab_size):
+        super(Decoder_Attention, self).__init__()
+        self.units=units
+        self.attention = tf.keras.layers.Attention() # TODO
+        self.embed = tf.keras.layers.Embedding(vocab_size, embed_dim) #build your Embedding layer
+        self.gru = tf.keras.layers.GRU(self.units,return_sequences=True,return_state=True,recurrent_initializer='glorot_uniform')
+        self.d1 = tf.keras.layers.Dense(self.units) #build your Dense layer
+        self.d2 = tf.keras.layers.Dense(vocab_size) #build your Dense layer
+        self.hidden = self.init_state(32) # TODO garbage
+        self.x = None
+
+    def call(self,inputs):
+        hidden = self.hidden
+
+        x = self.x
+        features = inputs
+
+        context_vector = self.attention([x, features]) #create your context vector & attention weights from attention model
+        embed = self.embed(x) # embed your input to shape: (batch_size, 1, embedding_dim)
+        embed = tf.concat([tf.expand_dims(context_vector, 1), embed], axis = -1) # Concatenate your input with the context vector from attention layer. Shape: (batch_size, 1, embedding_dim + embedding_dim)
+
+        #(64, 1, 49, 256)
+        #(64, 1, 256)
+
+        # is what the dimensions should be....
+        # so 32,1,256 is good
+        # 360, 34, 256 is NOT good!
+
+        # TODO: error here:
+        # [32, 1, 256] vs. [360, 34, 256]
+
+        output,state = self.gru(embed) # Extract the output & hidden state from GRU layer. Output shape : (batch_size, max_length, hidden_size)
+        output = self.d1(output)
+        output = tf.reshape(output, (-1, output.shape[2])) # shape : (batch_size * max_length, hidden_size)
+        output = self.d2(output) # shape : (batch_size * max_length, vocab_size)
+        
+        return output
+    
+    def init_state(self, batch_size):
+        return tf.zeros((batch_size, self.units))
