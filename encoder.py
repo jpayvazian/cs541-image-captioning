@@ -50,3 +50,14 @@ def extract_features(image_files, encoder_type):
             features = pickle.load(f)
 
     return features
+
+class LSTM_Encoder(tf.keras.Model):
+    '''
+    Applies dense layer to features to shrink dimensionality to embedding dim
+    '''
+    def __init__(self, embedding_dim):
+        super().__init__()
+        self.dense = tf.keras.layers.Dense(embedding_dim, activation='relu')
+
+    def call(self, x):
+        return self.dense(x)

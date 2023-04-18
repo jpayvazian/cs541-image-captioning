@@ -1,22 +1,26 @@
 import pandas as pd
 import tensorflow as tf
-from encoder import extract_features
+from encoder import extract_features, LSTM_Encoder
 from dataset import FlickrDataset
 from decoder_transformer import TransformerDecoder
+from decoder_lstm_attention import LSTM_Decoder, LSTM_Attention_Model
 from caption import Captioner, CaptionCallback
 from utils import get_freq
-from eval import masked_loss, masked_acc
+from eval import masked_loss
 import numpy as np
 import sys
 
+VOCAB_SIZE = 5000
 NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
+UNITS = 512
 NUM_HEADS = 2
 DROPOUT = 0.5
-EPOCHS = 10
+EPOCHS = 7
 BATCH_SIZE = 32
+LOG_FREQ = 20
 ENCODER_TYPES = ['resnet', 'vit']
-DECODER_TYPES = ['transformer', 'lstm']
+DECODER_TYPES = ['transformer', 'lstm_baseline', 'lstm_attention']
 
 if __name__ == "__main__":
     '''
@@ -47,44 +51,57 @@ if __name__ == "__main__":
     valid_labels.reset_index(drop=True)
 
     # Tokenizer
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
+    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', num_words=VOCAB_SIZE, oov_token="<unk>")
     tokenizer.fit_on_texts(train_captions)
-    # Number unique words in vocab (for num classes), biggest caption size (for padding)
-    vocab_size = len(tokenizer.word_index) + 1
+    # Max caption size (for padding)
     max_len = max(len(caption.split()) for caption in captions)
 
-    # Feature extraction (Pooling if lstm)
+    # Feature extraction (Pooling if lstm_baseline)
     features = extract_features(image_files, ENCODER_TYPE)
-    if ENCODER_TYPE == 'lstm':
+    if ENCODER_TYPE == 'lstm_baseline':
         features = dict((k, tf.keras.layers.GlobalAveragePooling2D()(np.expand_dims(v, axis=1)).numpy())
                         for k, v in features.items())
 
     # Create datasets to serve as batch generator during training
-    flickr_train_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
+    flickr_train_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=VOCAB_SIZE, max_len=max_len,
                                 batch_size=BATCH_SIZE, features=features, decoder_type=DECODER_TYPE)
-    flickr_valid_data = FlickrDataset(df=valid_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
+    flickr_valid_data = FlickrDataset(df=valid_labels, tokenizer=tokenizer, vocab_size=VOCAB_SIZE, max_len=max_len,
                                 batch_size=BATCH_SIZE, features=features, decoder_type=DECODER_TYPE)
 
-    # Create transformer decoder
+    # Create decoder
     freq_dist = get_freq(train_captions, tokenizer.word_index)
-    transformer = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
-                                             units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
+    # transformer = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
+    #                                          units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
 
     # Compile decoder
-    transformer.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-                        loss=masked_loss, metrics=[masked_acc])
+    # transformer.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss=masked_loss)
+    lstm = LSTM_Attention_Model(encoder=LSTM_Encoder(EMBEDDING_DIM),
+                                decoder=LSTM_Decoder(freq_dist=freq_dist, embed_dim=EMBEDDING_DIM, units=UNITS),
+                                optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                                loss_fcn=masked_loss,
+                                tokenizer=tokenizer)
 
     # Create captioner
-    captioner = Captioner(features=features, decoder=transformer, tokenizer=tokenizer, max_len=max_len,
+    captioner = Captioner(features=features, model=lstm, tokenizer=tokenizer, max_len=max_len,
                           decoder_type=DECODER_TYPE)
 
+    for epoch in range(EPOCHS):
+        total_loss = 0
+        for batch, (img_feature, target) in enumerate(flickr_train_data):
+            t_loss = lstm.train_step(img_feature, target)
+            total_loss += t_loss
+            if (batch+1) % LOG_FREQ == 0:
+                print(f'Epoch {epoch+1} Batch {batch+1} Loss {total_loss/batch+1:.6f}')
+        print(f'Epoch {epoch+1} Loss {total_loss / len(flickr_train_data)+1:.6f}')
+        print(captioner.generate_caption(valid_files[0], 1))
+
     # Train model
-    transformer.fit(
-        flickr_train_data,
-        epochs=EPOCHS,
-        validation_data=flickr_valid_data,
-        callbacks=[CaptionCallback(valid_files[0], captioner)])
-    transformer.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
+    # transformer.fit(
+    #     flickr_train_data,
+    #     epochs=EPOCHS,
+    #     validation_data=flickr_valid_data,
+    #     callbacks=[CaptionCallback(valid_files[0], captioner)])
+    # transformer.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
 
     # Evaluation: load model and save captions to .txt file
     # transformer.load_weights(f'models/{ENCODER_TYPE}_{DECODER_TYPE}')

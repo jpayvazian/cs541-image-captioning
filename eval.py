@@ -1,8 +1,4 @@
 import tensorflow as tf
-# TODO:
-#  - BLEU1-4, ROUGE-L, METEOR, CIDEr, SPICE
-#  - Baseline evaluation
-#  - Attention visualization
 
 @tf.function
 def masked_loss(y, yhat):
@@ -15,7 +11,7 @@ def masked_loss(y, yhat):
     mask = tf.cast(mask, dtype=loss.dtype)
     loss *= mask
 
-    return tf.reduce_sum(loss)/tf.reduce_sum(mask)
+    return tf.reduce_mean(loss)
 
 @tf.function
 def masked_acc(y, yhat):
