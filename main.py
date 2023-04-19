@@ -70,43 +70,49 @@ if __name__ == "__main__":
 
     # Create decoder
     freq_dist = get_freq(train_captions, tokenizer.word_index)
-    # transformer = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
-    #                                          units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
 
-    # Compile decoder
-    # transformer.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss=masked_loss)
-    lstm = LSTM_Attention_Model(encoder=LSTM_Encoder(EMBEDDING_DIM),
-                                decoder=LSTM_Decoder(freq_dist=freq_dist, embed_dim=EMBEDDING_DIM, units=UNITS),
-                                optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-                                loss_fcn=masked_loss,
-                                tokenizer=tokenizer)
+    # Create decoder model
+    if DECODER_TYPE == "transformer":
+        model = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
+                                             units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss=masked_loss)
+
+    elif DECODER_TYPE == "lstm_attention":
+        model = LSTM_Attention_Model(encoder=LSTM_Encoder(EMBEDDING_DIM),
+                                    decoder=LSTM_Decoder(freq_dist=freq_dist, embed_dim=EMBEDDING_DIM, units=UNITS),
+                                    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                                    loss_fcn=masked_loss,
+                                    tokenizer=tokenizer)
 
     # Create captioner
-    captioner = Captioner(features=features, model=lstm, tokenizer=tokenizer, max_len=max_len,
+    captioner = Captioner(features=features, model=model, tokenizer=tokenizer, max_len=max_len,
                           decoder_type=DECODER_TYPE)
 
-    for epoch in range(EPOCHS):
-        total_loss = 0
-        for batch, (img_feature, target) in enumerate(flickr_train_data):
-            t_loss = lstm.train_step(img_feature, target)
-            total_loss += t_loss
-            if (batch+1) % LOG_FREQ == 0:
-                print(f'Epoch {epoch+1} Batch {batch+1} Loss {total_loss/batch+1:.6f}')
-        print(f'Epoch {epoch+1} Loss {total_loss / len(flickr_train_data)+1:.6f}')
-        print(captioner.generate_caption(valid_files[0], 1))
-
     # Train model
-    # transformer.fit(
-    #     flickr_train_data,
-    #     epochs=EPOCHS,
-    #     validation_data=flickr_valid_data,
-    #     callbacks=[CaptionCallback(valid_files[0], captioner)])
-    # transformer.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
+    if DECODER_TYPE == "transformer":
+        model.fit(
+            flickr_train_data,
+            epochs=EPOCHS,
+            validation_data=flickr_valid_data,
+            callbacks=[CaptionCallback(valid_files[0], captioner)])
+
+    elif DECODER_TYPE == "lstm_attention":
+        for epoch in range(EPOCHS):
+            total_loss = 0
+            for batch, (img_feature, target) in enumerate(flickr_train_data):
+                t_loss = model.train_step(img_feature, target)
+                total_loss += t_loss
+                if (batch+1) % LOG_FREQ == 0:
+                    print(f'Epoch {epoch+1} Batch {batch+1} Loss {total_loss/batch+1:.6f}')
+            print(f'Epoch {epoch+1} Loss {total_loss / len(flickr_train_data)+1:.6f}')
+            print(captioner.generate_caption(valid_files[0], 1))
+
+    # model.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
+    # model.load_weights(f'models/{ENCODER_TYPE}_{DECODER_TYPE}')
 
     # Evaluation: load model and save captions to .txt file
-    # transformer.load_weights(f'models/{ENCODER_TYPE}_{DECODER_TYPE}')
-    # with open(f'flickr8k/Output/captions_{ENCODER_TYPE}_{DECODER_TYPE}.txt', mode='w') as f:
-    #     f.write('image,caption\n')
-    #     for img in test_files:
-    #         caption = captioner.generate_caption(img, 3)
-    #         f.write(f'{img},{caption}\n')
+    with open(f'flickr8k/Output/captions_{ENCODER_TYPE}_{DECODER_TYPE}.txt', mode='w') as f:
+        f.write('image,caption\n')
+        for img in test_files:
+            caption = captioner.generate_caption(img, 3)
+            f.write(f'{img},{caption}\n')
