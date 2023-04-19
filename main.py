@@ -98,13 +98,22 @@ if __name__ == "__main__":
 
     elif DECODER_TYPE == "lstm_attention":
         for epoch in range(EPOCHS):
-            total_loss = 0
+            total_train_loss, total_val_loss = 0, 0
+            # Training data loop
             for batch, (img_feature, target) in enumerate(flickr_train_data):
                 t_loss = model.train_step(img_feature, target)
-                total_loss += t_loss
+                total_train_loss += t_loss
+
                 if (batch+1) % LOG_FREQ == 0:
-                    print(f'Epoch {epoch+1} Batch {batch+1} Loss {total_loss/batch+1:.6f}')
-            print(f'Epoch {epoch+1} Loss {total_loss / len(flickr_train_data)+1:.6f}')
+                    print(f'Epoch {epoch+1} Batch {batch+1} Loss {total_train_loss/batch+1:.6f}')
+
+            # Validation data loop
+            for batch, (val_img_feature, val_target) in enumerate(flickr_valid_data):
+                v_loss = model.test_step(val_img_feature, val_target)
+                total_val_loss += v_loss
+
+            avg_train_loss, avg_val_loss = total_train_loss / len(flickr_train_data), total_val_loss / len(flickr_valid_data)
+            print(f'Epoch {epoch+1} Training Loss {avg_train_loss:.6f} Valid Loss {avg_val_loss:.6f}')
             print(captioner.generate_caption(valid_files[0], 1))
 
     # model.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")

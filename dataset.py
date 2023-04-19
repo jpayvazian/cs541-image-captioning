@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import math
 
 class FlickrDataset(tf.keras.utils.Sequence):
     '''
@@ -19,7 +20,7 @@ class FlickrDataset(tf.keras.utils.Sequence):
         self.df = self.df.sample(frac=1).reset_index(drop=True)
 
     def __len__(self):
-        return len(self.df) // self.batch_size
+        return math.ceil(len(self.df) / self.batch_size)
 
     def __getitem__(self, index):
         '''

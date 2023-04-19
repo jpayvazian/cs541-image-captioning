@@ -74,9 +74,23 @@ class LSTM_Attention_Model:
                 # teacher forcing
                 seq = tf.expand_dims(target[:, i], 1)
 
-        total_loss = (loss / int(target.shape[1]))
+        total_loss = loss / int(target.shape[1])
         trainable_variables = self.encoder.trainable_variables + self.decoder.trainable_variables
         gradients = tape.gradient(loss, trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, trainable_variables))
 
         return total_loss
+
+    def test_step(self, img_feature, target):
+        loss = 0
+        hidden = self.decoder.init_state(batch_size=target.shape[0])
+        seq = tf.expand_dims([self.tokenizer.word_index['<start>']] * target.shape[0], 1)
+        features = self.encoder(img_feature)
+
+        for i in range(1, target.shape[1]):
+            predictions, hidden, _ = self.decoder.predict((features, seq, hidden), verbose=0)
+            loss += self.loss_fcn(target[:, i], predictions)
+            # use predicted token for next time step
+            seq = tf.expand_dims(tf.argmax(predictions, axis=1), 1)
+
+        return loss / int(target.shape[1])
