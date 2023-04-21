@@ -4,3 +4,5 @@ venv/
 models/
 .idea/
 .vscode/
+__pycache__
+pycocoevalcap/

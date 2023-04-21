@@ -42,5 +42,6 @@ def get_freq(captions, vocab):
         token_freq[index] = count
 
     token_freq[vocab["<start>"]] = 0
+    token_freq[vocab["<unk>"]] = 0
 
     return token_freq

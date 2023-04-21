@@ -130,7 +130,7 @@ class TokenOutput(tf.keras.layers.Layer):
     def smart_init(self):
         '''
         Smart Initialization to improve loss: log(vocab_size) -> -p*log(p)
-        1. Sets high negative bias for tokens the model should never predict (<pad> and <start>)
+        1. Sets high negative bias for tokens the model should never predict (<pad> <start> <unk>)
         2. Uses token frequency from labels to set optimal bias for starting likelihood distribution
            This reduces initial loss from entropy of uniform dist to marginal entropy of dist
         '''
