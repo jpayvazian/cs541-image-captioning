@@ -4,6 +4,7 @@ from encoder import extract_features, LSTM_Encoder
 from dataset import FlickrDataset
 from decoder_transformer import TransformerDecoder
 from decoder_lstm_attention import LSTM_Decoder, LSTM_Attention_Model
+from decoder_baseline import Decoder_Baseline
 from caption import Captioner, CaptionCallback
 from utils import get_freq
 from eval import masked_loss
@@ -58,7 +59,7 @@ if __name__ == "__main__":
 
     # Feature extraction (Pooling if lstm_baseline)
     features = extract_features(image_files, ENCODER_TYPE)
-    if ENCODER_TYPE == 'lstm_baseline':
+    if DECODER_TYPE == 'lstm_baseline':
         features = dict((k, tf.keras.layers.GlobalAveragePooling2D()(np.expand_dims(v, axis=1)).numpy())
                         for k, v in features.items())
 
@@ -83,10 +84,22 @@ if __name__ == "__main__":
                                     optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                                     loss_fcn=masked_loss,
                                     tokenizer=tokenizer)
+    elif DECODER_TYPE == "lstm_baseline":
+        model = Decoder_Baseline(UNITS, max_len, EMBEDDING_DIM, VOCAB_SIZE, DROPOUT)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
 
     # Create captioner
     captioner = Captioner(features=features, model=model, tokenizer=tokenizer, max_len=max_len,
                           decoder_type=DECODER_TYPE)
+
+
+    #print("mdae it here")
+    #print(flickr_train_data[0])
+    #exit(0)
+
+    #300, 49, 256
+    # it is NOT dataset.py!
 
     # Train model
     if DECODER_TYPE == "transformer":
@@ -115,8 +128,15 @@ if __name__ == "__main__":
             avg_train_loss, avg_val_loss = total_train_loss / len(flickr_train_data), total_val_loss / len(flickr_valid_data)
             print(f'Epoch {epoch+1} Training Loss {avg_train_loss:.6f} Valid Loss {avg_val_loss:.6f}')
             print(captioner.generate_caption(valid_files[0], 1))
+    elif DECODER_TYPE == "lstm_baseline":
+        model.fit(
+            flickr_train_data,
+            epochs=EPOCHS,
+            validation_data=flickr_valid_data)
+    
 
-    # model.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
+
+    model.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
     # model.load_weights(f'models/{ENCODER_TYPE}_{DECODER_TYPE}')
 
     # Evaluation: load model and save captions to .txt file

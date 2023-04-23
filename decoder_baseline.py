@@ -12,7 +12,6 @@ class Decoder_Baseline(Model):
         self.embed_dim = embed_dim
         self.vocab_size = vocab_size 
         self.dropout = dropout
-        self.hidden = tf.zeros((32, self.units)) # TODO we can do better than this
 
         self.dense1 = tf.keras.layers.Dense(self.embed_dim, activation='relu')
         self.embedding = tf.keras.layers.Embedding(self.vocab_size, self.embed_dim, mask_zero=False)
@@ -31,12 +30,10 @@ class Decoder_Baseline(Model):
         seq_features = self.embedding(seq_input)
         merged = tf.keras.layers.concatenate([img_features_reshaped, seq_features], axis=1)
 
-
-
         seq_features = self.lstm(merged)
 
         x = self.dropout1(seq_features)
-        x = tf.keras.layers.add([x, img_features]) # TODO issue here w/ different batch sizes :/
+        x = tf.keras.layers.add([x, img_features])
         x = self.dense2(x)
         x = self.dropout2(x)
         output = self.dense3(x) # Removed softmax since its done in caption generation/loss fcn
