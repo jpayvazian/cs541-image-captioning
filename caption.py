@@ -6,11 +6,12 @@ class Captioner:
     Generates image captions via beam search using the trained decoder model
     Returns caption without <start> and <end> tags for easier evaluation with captions_clean_tagless
     '''
-    def __init__(self, features, decoder, tokenizer, max_len):
+    def __init__(self, features, model, tokenizer, max_len, decoder_type):
         self.features = features
-        self.decoder = decoder
+        self.model = model
         self.tokenizer = tokenizer
         self.max_len = max_len
+        self.decoder_type = decoder_type
 
     def generate_caption(self, image, k):
         '''
@@ -23,6 +24,10 @@ class Captioner:
             Break early if best seq in beam has <end> token
         '''
         features = self.features[image]
+        if self.decoder_type == "lstm_attention":
+            hidden = self.model.decoder.init_state(batch_size=1)
+            features = self.model.encoder(features)
+
         start = [self.tokenizer.word_index['<start>']]
         end = self.tokenizer.word_index['<end>']
         beam = [(start, 0.0)]
@@ -31,7 +36,13 @@ class Captioner:
             beam_new = []
             for seq, loss in beam:
                 if seq[-1] != end:
-                    logits = self.decoder.predict((features, tf.constant([seq])), verbose=0)
+                    if self.decoder_type == 'transformer':
+                        logits = self.model.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
+                    elif self.decoder_type == 'lstm_baseline':
+                        logits = self.model.predict((features, tf.constant([seq])), verbose=0)
+                    elif self.decoder_type == 'lstm_attention':
+                        logits, hidden, _ = self.model.decoder.predict((features, tf.constant([seq[-1:]]), hidden))
+
                     scores = tf.math.log(tf.nn.softmax(logits)).numpy()[0]
                     top_k_idx = np.argsort(scores)[-k:]
 
