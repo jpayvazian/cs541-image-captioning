@@ -7,7 +7,7 @@ from caption import Captioner, CaptionCallback
 from utils import get_freq
 from eval import masked_loss, masked_acc
 import numpy as np
-from decoder import Decoder_Baseline
+from decoder_baseline import Decoder_Baseline
 from decoder import Decoder_Attention
 
 NUM_DECODER_LAYERS = 2
@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     # Create LSTM decoder
     
-    lstm = Decoder_Baseline(UNITS, max_len, EMBEDDING_DIM, vocab_size, DROPOUT, has_attention=False)
+    lstm = Decoder_Baseline(UNITS, max_len, EMBEDDING_DIM, vocab_size, DROPOUT)
     # lstm = Decoder_Attention(EMBEDDING_DIM, UNITS, vocab_size)
 
     # dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * BATCH_SIZE, 1)
