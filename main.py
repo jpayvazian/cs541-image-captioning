@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     # Feature extraction (Pooling if lstm_baseline)
     features = extract_features(image_files, ENCODER_TYPE)
-    if ENCODER_TYPE == 'lstm_baseline':
+    if DECODER_TYPE == 'lstm_baseline':
         features = dict((k, tf.keras.layers.GlobalAveragePooling2D()(np.expand_dims(v, axis=1)).numpy())
                         for k, v in features.items())
 
