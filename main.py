@@ -11,10 +11,10 @@ from eval import masked_loss
 import numpy as np
 import sys
 
-VOCAB_SIZE = 5000
+# VOCAB_SIZE = 5000
 NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
-UNITS = 512
+UNITS = 128
 NUM_HEADS = 2
 DROPOUT = 0.5
 EPOCHS = 7
@@ -52,9 +52,11 @@ if __name__ == "__main__":
     valid_labels.reset_index(drop=True)
 
     # Tokenizer
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', num_words=VOCAB_SIZE, oov_token="<unk>")
+    # tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', num_words=VOCAB_SIZE, oov_token="<unk>")
+    tokenizer =  tf.keras.preprocessing.text.Tokenizer(filters='')
     tokenizer.fit_on_texts(train_captions)
     # Max caption size (for padding)
+    VOCAB_SIZE = len(tokenizer.word_index) + 1
     max_len = max(len(caption.split()) for caption in captions)
 
     # Feature extraction (Pooling if lstm_baseline)
@@ -70,7 +72,8 @@ if __name__ == "__main__":
                                 batch_size=BATCH_SIZE, features=features, decoder_type=DECODER_TYPE)
 
     # Create decoder
-    freq_dist = get_freq(train_captions, tokenizer.word_index)
+    if DECODER_TYPE != "lstm_baseline":
+        freq_dist = get_freq(train_captions, tokenizer.word_index)
 
     # Create decoder model
     if DECODER_TYPE == "transformer":
@@ -85,21 +88,13 @@ if __name__ == "__main__":
                                     loss_fcn=masked_loss,
                                     tokenizer=tokenizer)
     elif DECODER_TYPE == "lstm_baseline":
-        model = Decoder_Baseline(UNITS, max_len, EMBEDDING_DIM, VOCAB_SIZE, DROPOUT)
+        model = Decoder_Baseline(LSTM_Encoder(EMBEDDING_DIM), UNITS, EMBEDDING_DIM, VOCAB_SIZE, DROPOUT)
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
 
     # Create captioner
     captioner = Captioner(features=features, model=model, tokenizer=tokenizer, max_len=max_len,
                           decoder_type=DECODER_TYPE)
-
-
-    #print("mdae it here")
-    #print(flickr_train_data[0])
-    #exit(0)
-
-    #300, 49, 256
-    # it is NOT dataset.py!
 
     # Train model
     if DECODER_TYPE == "transformer":
@@ -132,11 +127,10 @@ if __name__ == "__main__":
         model.fit(
             flickr_train_data,
             epochs=EPOCHS,
-            validation_data=flickr_valid_data)
-    
+            validation_data=flickr_valid_data,
+            callbacks=[CaptionCallback(valid_files[0], captioner)])
 
-
-    model.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
+    # model.save_weights(f"models/{ENCODER_TYPE}_{DECODER_TYPE}")
     # model.load_weights(f'models/{ENCODER_TYPE}_{DECODER_TYPE}')
 
     # Evaluation: load model and save captions to .txt file

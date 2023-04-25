@@ -1,8 +1,8 @@
 import tensorflow as tf
 import evaluate
-from pycocoevalcap.bleu.bleu import Bleu
-from pycocoevalcap.cider.cider import Cider
-from pycocoevalcap.rouge.rouge import Rouge
+#from pycocoevalcap.bleu.bleu import Bleu
+#from pycocoevalcap.cider.cider import Cider
+#from pycocoevalcap.rouge.rouge import Rouge
 import json
 import csv
 import sys
@@ -31,7 +31,7 @@ def masked_acc(y, yhat):
     y = tf.cast(y, yhat.dtype)
     correct = tf.cast(yhat == y, mask.dtype)
     return tf.reduce_sum(correct * mask)/tf.reduce_sum(mask)
-
+'''
 def bleu(labels, output):
     scorer = Bleu(n=4)
     score, scores = scorer.compute_score(labels, output)
@@ -94,10 +94,10 @@ def make_output_json(inpath, outpath):
 ENCODER_TYPES = ['resnet', 'vit']
 DECODER_TYPES = ['transformer', 'lstm_baseline', 'lstm_attention']
 if __name__ == "__main__":
-    '''
+    
     COMMAND LINE ARGS:
     python eval.py [ENCODER_TYPE] [DECODER_TYPE]
-    '''
+    
     ENCODER_TYPE, DECODER_TYPE = sys.argv[1], sys.argv[2]
     if (ENCODER_TYPE not in ENCODER_TYPES) or (DECODER_TYPE not in DECODER_TYPES):
         print("Invalid encoder/decoder type")
@@ -127,3 +127,4 @@ if __name__ == "__main__":
     rouge(caption_labels, caption_output)
     cider(caption_labels, caption_output)
     meteor(caption_labels, caption_output)
+'''

@@ -39,7 +39,7 @@ class Captioner:
                     if self.decoder_type == 'transformer':
                         logits = self.model.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
                     elif self.decoder_type == 'lstm_baseline':
-                        logits = self.model.predict((features, tf.constant([seq])), verbose=0)
+                        logits = self.model.predict((features, tf.keras.utils.pad_sequences([seq], maxlen=self.max_len, padding='post')), verbose=0)
                     elif self.decoder_type == 'lstm_attention':
                         logits, hidden, _ = self.model.decoder.predict((features, tf.constant([seq[-1:]]), hidden))
 
