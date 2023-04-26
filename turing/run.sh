@@ -4,4 +4,4 @@
 #SBATCH --mem 16GB
 #SBATCH -t 24:00:00
 
-srun -l python3 main.py vit lstm_baseline 
+srun -l python3 main.py resnet transformer
