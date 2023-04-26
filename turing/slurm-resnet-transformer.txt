@@ -1,0 +1,100 @@
+0: 2023-04-17 18:32:52.447653: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
+0: To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+0: 2023-04-17 18:32:52.961971: I tensorflow/core/util/port.cc:104] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0: 2023-04-17 18:32:52.971548: W tensorflow/compiler/xla/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /cm/shared/apps/slurm/current/lib64/slurm:/cm/shared/apps/slurm/current/lib64
+0: 2023-04-17 18:32:52.971769: I tensorflow/compiler/xla/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+0: 2023-04-17 18:33:04.093323: W tensorflow/compiler/xla/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libnvinfer.so.7'; dlerror: libnvinfer.so.7: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /cm/shared/apps/slurm/current/lib64/slurm:/cm/shared/apps/slurm/current/lib64
+0: 2023-04-17 18:33:04.097384: W tensorflow/compiler/xla/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libnvinfer_plugin.so.7'; dlerror: libnvinfer_plugin.so.7: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /cm/shared/apps/slurm/current/lib64/slurm:/cm/shared/apps/slurm/current/lib64
+0: 2023-04-17 18:33:04.097488: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Cannot dlopen some TensorRT libraries. If you would like to use Nvidia GPU with TensorRT, please make sure the missing libraries mentioned above are installed properly.
+0: /home/jpayvazian/deep_learning/lib/python3.9/site-packages/tensorflow_addons/utils/tfa_eol_msg.py:23: UserWarning:
+0:
+0: TensorFlow Addons (TFA) has ended development and introduction of new features.
+0: TFA has entered a minimal maintenance and release mode until a planned end of life in May 2024.
+0: Please modify downstream libraries to take dependencies from other repositories in our TensorFlow community (e.g. Keras, Keras-CV, and Keras-NLP).
+0:
+0: For more information see: https://github.com/tensorflow/addons/issues/2807
+0:
+0:   warnings.warn(
+0: 2023-04-17 18:33:56.876365: E tensorflow/compiler/xla/stream_executor/cuda/cuda_driver.cc:267] failed call to cuInit: CUDA_ERROR_NO_DEVICE: no CUDA-capable device is detected
+0: 2023-04-17 18:33:56.876591: I tensorflow/compiler/xla/stream_executor/cuda/cuda_diagnostics.cc:169] retrieving CUDA diagnostic information for host: compute-1-04
+0: 2023-04-17 18:33:56.876635: I tensorflow/compiler/xla/stream_executor/cuda/cuda_diagnostics.cc:176] hostname: compute-1-04
+0: 2023-04-17 18:33:56.876869: I tensorflow/compiler/xla/stream_executor/cuda/cuda_diagnostics.cc:200] libcuda reported version is: 525.60.13
+0: 2023-04-17 18:33:56.876948: I tensorflow/compiler/xla/stream_executor/cuda/cuda_diagnostics.cc:204] kernel reported version is: 525.60.13
+0: 2023-04-17 18:33:56.877006: I tensorflow/compiler/xla/stream_executor/cuda/cuda_diagnostics.cc:310] kernel version seems to match DSO: 525.60.13
+0: 2023-04-17 18:33:56.877499: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
+0: To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+0: Epoch 1/7
+ 207/1011 [=====>........................] - ETA: 17:38 - loss: 5.2751 - masked_acc: 0.1604
+ 235/1011 [=====>........................] - ETA: 17:01 - loss: 5.2418 - masked_acc: 0.1651606
+ 442/1011 [============>.................] - ETA: 12:05 - loss: 4.9893 - masked_acc: 0.1973
+ 470/1011 [============>.................] - ETA: 11:32 - loss: 4.9632 - masked_acc: 0.2005
+ 571/1011 [===============>..............] - ETA: 9:26 - loss: 4.8754 - masked_acc: 0.2109
+ 588/1011 [================>.............] - ETA: 9:05 - loss: 4.8651 - masked_acc: 0.2121
+ 786/1011 [======================>.......] - ETA: 4:51 - loss: 4.7209 - masked_acc: 0.2282
+1011/1011 [==============================] - ETA: 0s - loss: 4.5888 - masked_acc: 0.2412  283
+0: man in red shirt is standing on the air5 - masked_acc: 0.2410sked_acc: 0.23892
+1011/1011 [==============================] - 1400s 1s/step - loss: 4.5888 - masked_acc: 0.2412 - val_loss: 3.9116 - val_masked_acc: 0.2953
+0: Epoch 2/7
+ 235/1011 [=====>........................] - ETA: 16:25 - loss: 3.9344 - masked_acc: 0.3007
+ 263/1011 [======>.......................] - ETA: 15:49 - loss: 3.9216 - masked_acc: 0.30159
+ 498/1011 [=============>................] - ETA: 10:18 - loss: 3.8595 - masked_acc: 0.3073
+ 611/1011 [=================>............] - ETA: 7:52 - loss: 3.8381 - masked_acc: 0.3085 73
+ 628/1011 [=================>............] - ETA: 7:31 - loss: 3.8361 - masked_acc: 0.308885
+ 819/1011 [=======================>......] - ETA: 3:55 - loss: 3.8034 - masked_acc: 0.3113
+ 826/1011 [=======================>......] - ETA: 3:35 - loss: 3.8007 - masked_acc: 0.3115
+1011/1011 [==============================] - ETA: 0s - loss: 3.7681 - masked_acc: 0.3142
+0: man in red shirt is standing on the street716 - masked_acc: 0.31393133
+1011/1011 [==============================] - 1243s 1s/step - loss: 3.7681 - masked_acc: 0.3142 - val_loss: 3.5404 - val_masked_acc: 0.3233
+0: Epoch 3/7
+ 235/1011 [=====>........................] - ETA: 14:32 - loss: 3.4948 - masked_acc: 0.3347
+ 263/1011 [======>.......................] - ETA: 14:13 - loss: 3.4811 - masked_acc: 0.33608
+ 498/1011 [=============>................] - ETA: 10:13 - loss: 3.4626 - masked_acc: 0.3374
+ 628/1011 [=================>............] - ETA: 7:39 - loss: 3.4514 - masked_acc: 0.3387 74
+ 645/1011 [==================>...........] - ETA: 7:19 - loss: 3.4501 - masked_acc: 0.33876
+ 843/1011 [========================>.....] - ETA: 3:24 - loss: 3.4277 - masked_acc: 0.3407
+1011/1011 [==============================] - ETA: 0s - loss: 3.4101 - masked_acc: 0.3420
+0: man in red shirt is standing on the street116 - masked_acc: 0.3419
+1011/1011 [==============================] - 1313s 1s/step - loss: 3.4101 - masked_acc: 0.3420 - val_loss: 3.3458 - val_masked_acc: 0.3361
+0: Epoch 4/7
+ 235/1011 [=====>........................] - ETA: 14:42 - loss: 3.1982 - masked_acc: 0.3638
+ 263/1011 [======>.......................] - ETA: 14:18 - loss: 3.1984 - masked_acc: 0.36317
+ 498/1011 [=============>................] - ETA: 10:17 - loss: 3.1903 - masked_acc: 0.3622
+ 594/1011 [================>.............] - ETA: 8:29 - loss: 3.1841 - masked_acc: 0.3630 22
+ 611/1011 [=================>............] - ETA: 8:08 - loss: 3.1852 - masked_acc: 0.36260
+ 809/1011 [=======================>......] - ETA: 4:11 - loss: 3.1785 - masked_acc: 0.3619
+1011/1011 [==============================] - ETA: 0s - loss: 3.1648 - masked_acc: 0.3632
+0: two people are standing in front of large buildings: 3.1670 - masked_acc: 0.3630
+1011/1011 [==============================] - 1357s 1s/step - loss: 3.1648 - masked_acc: 0.3632 - val_loss: 3.2304 - val_masked_acc: 0.3446
+0: Epoch 5/7
+ 235/1011 [=====>........................] - ETA: 16:49 - loss: 2.9937 - masked_acc: 0.3786
+ 263/1011 [======>.......................] - ETA: 16:12 - loss: 2.9912 - masked_acc: 0.37876
+ 498/1011 [=============>................] - ETA: 11:08 - loss: 2.9846 - masked_acc: 0.3796
+ 526/1011 [==============>...............] - ETA: 10:31 - loss: 2.9835 - masked_acc: 0.379897
+ 554/1011 [===============>..............] - ETA: 9:55 - loss: 2.9850 - masked_acc: 0.3797
+ 752/1011 [=====================>........] - ETA: 5:37 - loss: 2.9762 - masked_acc: 0.3804797
+ 769/1011 [=====================>........] - ETA: 5:15 - loss: 2.9768 - masked_acc: 0.38043
+1011/1011 [==============================] - ETA: 0s - loss: 2.9740 - masked_acc: 0.3802
+0: man in red shirt is standing on the street2.9744 - masked_acc: 0.3801sked_acc: 0.37999
+1011/1011 [==============================] - 1382s 1s/step - loss: 2.9740 - masked_acc: 0.3802 - val_loss: 3.1588 - val_masked_acc: 0.3517
+0: Epoch 6/7
+ 235/1011 [=====>........................] - ETA: 17:04 - loss: 2.8227 - masked_acc: 0.3984
+ 263/1011 [======>.......................] - ETA: 16:25 - loss: 2.8287 - masked_acc: 0.39745
+ 498/1011 [=============>................] - ETA: 11:15 - loss: 2.8259 - masked_acc: 0.3956
+ 526/1011 [==============>...............] - ETA: 10:37 - loss: 2.8234 - masked_acc: 0.396057
+ 718/1011 [====================>.........] - ETA: 6:24 - loss: 2.8180 - masked_acc: 0.3961
+ 735/1011 [====================>.........] - ETA: 6:01 - loss: 2.8179 - masked_acc: 0.39611
+ 933/1011 [==========================>...] - ETA: 1:41 - loss: 2.8174 - masked_acc: 0.3957
+1011/1011 [==============================] - ETA: 0s - loss: 2.8143 - masked_acc: 0.3959
+0: man in red shirt is standing on the streets - loss: 2.8139 - masked_acc: 0.3959
+1011/1011 [==============================] - 1396s 1s/step - loss: 2.8143 - masked_acc: 0.3959 - val_loss: 3.1121 - val_masked_acc: 0.3547
+0: Epoch 7/7
+ 235/1011 [=====>........................] - ETA: 15:45 - loss: 2.6880 - masked_acc: 0.4111
+ 263/1011 [======>.......................] - ETA: 15:00 - loss: 2.6928 - masked_acc: 0.41021
+ 498/1011 [=============>................] - ETA: 10:17 - loss: 2.6832 - masked_acc: 0.4107
+ 594/1011 [================>.............] - ETA: 8:24 - loss: 2.6805 - masked_acc: 0.4107 07
+ 611/1011 [=================>............] - ETA: 8:04 - loss: 2.6825 - masked_acc: 0.41037
+ 809/1011 [=======================>......] - ETA: 4:04 - loss: 2.6813 - masked_acc: 0.4103
+1011/1011 [==============================] - ETA: 0s - loss: 2.6782 - masked_acc: 0.4105
+0: man stands in front of red and white buildingss: 2.6781 - masked_acc: 0.4106
+1011/1011 [==============================] - 1316s 1s/step - loss: 2.6782 - masked_acc: 0.4105 - val_loss: 3.0926 - val_masked_acc: 0.3548
+

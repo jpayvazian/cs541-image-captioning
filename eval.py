@@ -123,7 +123,7 @@ if __name__ == "__main__":
     output_json = f'flickr8k/Output/captions_{ENCODER_TYPE}_{DECODER_TYPE}.json'
 
     # labels to json conversion
-    # make_labels_json(label_raw, label_json)
+    make_labels_json(label_raw, label_json)
 
     # output to json conversion
     make_output_json(output_raw, output_json)
