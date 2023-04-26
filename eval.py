@@ -1,17 +1,29 @@
 import tensorflow as tf
 import evaluate
-#from pycocoevalcap.bleu.bleu import Bleu
-#from pycocoevalcap.cider.cider import Cider
-#from pycocoevalcap.rouge.rouge import Rouge
+from pycocoevalcap.bleu.bleu import Bleu
+from pycocoevalcap.cider.cider import Cider
+from pycocoevalcap.rouge.rouge import Rouge
 import json
 import csv
 import sys
 
 @tf.function
-def masked_loss(y, yhat):
+def masked_loss_transformer(y, yhat):
     '''
     Custom cross entropy loss which uses mask to exclude pad/<start> tokens in calculation
     Sparse Categorical since labels are integer encodings (not 1-hot)
+    '''
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')(y, yhat)
+    mask = (y != 0) & (loss < 1e8)
+    mask = tf.cast(mask, dtype=loss.dtype)
+    loss *= mask
+
+    return tf.reduce_sum(loss)/tf.reduce_sum(mask)
+
+@tf.function
+def masked_loss_lstm(y, yhat):
+    '''
+    Same as other masked loss, except reduce_mean used to prevent divide by 0
     '''
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')(y, yhat)
     mask = (y != 0) & (loss < 1e8)
@@ -31,7 +43,7 @@ def masked_acc(y, yhat):
     y = tf.cast(y, yhat.dtype)
     correct = tf.cast(yhat == y, mask.dtype)
     return tf.reduce_sum(correct * mask)/tf.reduce_sum(mask)
-'''
+
 def bleu(labels, output):
     scorer = Bleu(n=4)
     score, scores = scorer.compute_score(labels, output)
@@ -94,10 +106,10 @@ def make_output_json(inpath, outpath):
 ENCODER_TYPES = ['resnet', 'vit']
 DECODER_TYPES = ['transformer', 'lstm_baseline', 'lstm_attention']
 if __name__ == "__main__":
-    
+    '''
     COMMAND LINE ARGS:
     python eval.py [ENCODER_TYPE] [DECODER_TYPE]
-    
+    '''
     ENCODER_TYPE, DECODER_TYPE = sys.argv[1], sys.argv[2]
     if (ENCODER_TYPE not in ENCODER_TYPES) or (DECODER_TYPE not in DECODER_TYPES):
         print("Invalid encoder/decoder type")
@@ -111,7 +123,7 @@ if __name__ == "__main__":
     output_json = f'flickr8k/Output/captions_{ENCODER_TYPE}_{DECODER_TYPE}.json'
 
     # labels to json conversion
-    make_labels_json(label_raw, label_json)
+    # make_labels_json(label_raw, label_json)
 
     # output to json conversion
     make_output_json(output_raw, output_json)
@@ -127,4 +139,3 @@ if __name__ == "__main__":
     rouge(caption_labels, caption_output)
     cider(caption_labels, caption_output)
     meteor(caption_labels, caption_output)
-'''

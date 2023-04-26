@@ -7,19 +7,19 @@ from decoder_lstm_attention import LSTM_Decoder, LSTM_Attention_Model
 from decoder_baseline import Decoder_Baseline
 from caption import Captioner, CaptionCallback
 from utils import get_freq
-from eval import masked_loss
+from eval import masked_loss_transformer, masked_loss_lstm
 import numpy as np
 import sys
 
-# VOCAB_SIZE = 5000
+MAX_VOCAB_SIZE = 5000
 NUM_DECODER_LAYERS = 2
 EMBEDDING_DIM = 256
 UNITS = 128
 NUM_HEADS = 2
 DROPOUT = 0.5
-EPOCHS = 7
+EPOCHS = 10
 BATCH_SIZE = 32
-LOG_FREQ = 20
+LOG_FREQ = 200
 ENCODER_TYPES = ['resnet', 'vit']
 DECODER_TYPES = ['transformer', 'lstm_baseline', 'lstm_attention']
 
@@ -51,44 +51,45 @@ if __name__ == "__main__":
     test_labels.reset_index(drop=True)
     valid_labels.reset_index(drop=True)
 
-    # Tokenizer
-    # tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', num_words=VOCAB_SIZE, oov_token="<unk>")
-    tokenizer =  tf.keras.preprocessing.text.Tokenizer(filters='')
-    tokenizer.fit_on_texts(train_captions)
-    # Max caption size (for padding)
-    VOCAB_SIZE = len(tokenizer.word_index) + 1
-    max_len = max(len(caption.split()) for caption in captions)
-
     # Feature extraction (Pooling if lstm_baseline)
     features = extract_features(image_files, ENCODER_TYPE)
     if DECODER_TYPE == 'lstm_baseline':
+        tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
+        tokenizer.fit_on_texts(train_captions)
+        vocab_size = len(tokenizer.word_index) + 1
         features = dict((k, tf.keras.layers.GlobalAveragePooling2D()(np.expand_dims(v, axis=1)).numpy())
                         for k, v in features.items())
+    # Tokenizer
+    else:
+        tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', num_words=MAX_VOCAB_SIZE, oov_token="<unk>")
+        tokenizer.fit_on_texts(train_captions)
+        vocab_size = MAX_VOCAB_SIZE
+        freq_dist = get_freq(train_captions, tokenizer.word_index)
+
+    # Max caption size (for padding)
+    max_len = max(len(caption.split()) for caption in captions)
 
     # Create datasets to serve as batch generator during training
-    flickr_train_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=VOCAB_SIZE, max_len=max_len,
+    flickr_train_data = FlickrDataset(df=train_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
                                 batch_size=BATCH_SIZE, features=features, decoder_type=DECODER_TYPE)
-    flickr_valid_data = FlickrDataset(df=valid_labels, tokenizer=tokenizer, vocab_size=VOCAB_SIZE, max_len=max_len,
+    flickr_valid_data = FlickrDataset(df=valid_labels, tokenizer=tokenizer, vocab_size=vocab_size, max_len=max_len,
                                 batch_size=BATCH_SIZE, features=features, decoder_type=DECODER_TYPE)
-
-    # Create decoder
-    if DECODER_TYPE != "lstm_baseline":
-        freq_dist = get_freq(train_captions, tokenizer.word_index)
 
     # Create decoder model
     if DECODER_TYPE == "transformer":
         model = TransformerDecoder(freq_dist=freq_dist, max_len=max_len, num_layers=NUM_DECODER_LAYERS,
                                              units=EMBEDDING_DIM, num_heads=NUM_HEADS, dropout_rate=DROPOUT)
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss=masked_loss)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss=masked_loss_transformer)
 
     elif DECODER_TYPE == "lstm_attention":
         model = LSTM_Attention_Model(encoder=LSTM_Encoder(EMBEDDING_DIM),
                                     decoder=LSTM_Decoder(freq_dist=freq_dist, embed_dim=EMBEDDING_DIM, units=UNITS),
                                     optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-                                    loss_fcn=masked_loss,
+                                    loss_fcn=masked_loss_lstm,
                                     tokenizer=tokenizer)
     elif DECODER_TYPE == "lstm_baseline":
-        model = Decoder_Baseline(LSTM_Encoder(EMBEDDING_DIM), UNITS, EMBEDDING_DIM, VOCAB_SIZE, DROPOUT)
+        model = Decoder_Baseline(encoder=LSTM_Encoder(EMBEDDING_DIM),
+                                 units=UNITS, embed_dim=EMBEDDING_DIM, vocab_size=vocab_size, dropout=DROPOUT)
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
 
@@ -123,6 +124,7 @@ if __name__ == "__main__":
             avg_train_loss, avg_val_loss = total_train_loss / len(flickr_train_data), total_val_loss / len(flickr_valid_data)
             print(f'Epoch {epoch+1} Training Loss {avg_train_loss:.6f} Valid Loss {avg_val_loss:.6f}')
             print(captioner.generate_caption(valid_files[0], 1))
+
     elif DECODER_TYPE == "lstm_baseline":
         model.fit(
             flickr_train_data,
