@@ -31,10 +31,10 @@ class SeqEmbedding(tf.keras.layers.Layer):
         return self.add([seq_token, seq_pos])
 
 
-class CausalSelfAttention(tf.keras.layers.Layer):
+class MaskedSelfAttention(tf.keras.layers.Layer):
     '''
     MultiHead (Self) Attention layer to attend to the sequence output so far
-    Causal (Masked) since we only attend to past positions of sequence
+    Masked since we only attend to past positions of sequence
     LayerNormalization: Activation normalization for training stability (similar to batch norm)
     Add: (instead of +) to propogate keras mask
     '''
@@ -93,13 +93,13 @@ class FeedForward(tf.keras.layers.Layer):
 class DecoderLayer(tf.keras.layers.Layer):
     '''
     Main decoder layer 3 sublayers:
-    - CausalSelfAttention
+    - MaskedSelfAttention
     - CrossAttention
     - FeedForward
     '''
     def __init__(self, units, num_heads, dropout_rate):
         super().__init__()
-        self.self_attn = CausalSelfAttention(num_heads=num_heads, key_dim=units, dropout=dropout_rate)
+        self.self_attn = MaskedSelfAttention(num_heads=num_heads, key_dim=units, dropout=dropout_rate)
         self.cross_attn = CrossAttention(num_heads=num_heads, key_dim=units, dropout=dropout_rate)
         self.ff = FeedForward(units, dropout_rate)
 

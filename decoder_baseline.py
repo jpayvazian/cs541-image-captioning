@@ -1,10 +1,9 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Embedding, LSTM, add, Concatenate, Reshape, concatenate, Bidirectional
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, GlobalAveragePooling2D, Activation, Dropout, Flatten, Dense, Input, Layer
-from tensorflow.keras.models import Sequential, Model
-from keras import initializers, regularizers, constraints
 
-class Decoder_Baseline(Model):
+class Decoder_Baseline(tf.keras.Model):
+    '''
+    Baseline LSTM decoder adapted from https://www.kaggle.com/code/quadeer15sh/flickr8k-image-captioning-using-cnns-lstms
+    '''
     def __init__(self, encoder, units, embed_dim, vocab_size, dropout):
         super(Decoder_Baseline, self).__init__()
         self.encoder = encoder
@@ -30,4 +29,4 @@ class Decoder_Baseline(Model):
         x = tf.keras.layers.add([x, img_features])
         x = self.d1(x)
         x = self.dropout2(x)
-        return self.d2(x) # Removed softmax since its done in caption generation/loss fcn
+        return self.d2(x)
