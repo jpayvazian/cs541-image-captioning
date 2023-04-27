@@ -8,10 +8,22 @@ import csv
 import sys
 
 @tf.function
-def masked_loss(y, yhat):
+def masked_loss_transformer(y, yhat):
     '''
     Custom cross entropy loss which uses mask to exclude pad/<start> tokens in calculation
     Sparse Categorical since labels are integer encodings (not 1-hot)
+    '''
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')(y, yhat)
+    mask = (y != 0) & (loss < 1e8)
+    mask = tf.cast(mask, dtype=loss.dtype)
+    loss *= mask
+
+    return tf.reduce_sum(loss)/tf.reduce_sum(mask)
+
+@tf.function
+def masked_loss_lstm(y, yhat):
+    '''
+    Same as other masked loss, except reduce_mean used to prevent divide by 0
     '''
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')(y, yhat)
     mask = (y != 0) & (loss < 1e8)

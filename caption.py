@@ -4,7 +4,7 @@ import numpy as np
 class Captioner:
     '''
     Generates image captions via beam search using the trained decoder model
-    Returns caption without <start> and <end> tags for easier evaluation with captions_clean_tagless
+    Returns caption without <start> and <end> tags for easier evaluation with captions_test
     '''
     def __init__(self, features, model, tokenizer, max_len, decoder_type):
         self.features = features
@@ -39,7 +39,7 @@ class Captioner:
                     if self.decoder_type == 'transformer':
                         logits = self.model.predict((features, tf.constant([seq])), verbose=0)[:,-1,:]
                     elif self.decoder_type == 'lstm_baseline':
-                        logits = self.model.predict((features, tf.constant([seq])), verbose=0)
+                        logits = self.model.predict((features, tf.keras.utils.pad_sequences([seq], maxlen=self.max_len, padding='post')), verbose=0)
                     elif self.decoder_type == 'lstm_attention':
                         logits, hidden, _ = self.model.decoder.predict((features, tf.constant([seq[-1:]]), hidden))
 
@@ -63,7 +63,6 @@ class Captioner:
 class CaptionCallback(tf.keras.callbacks.Callback):
     '''
     Callback to generate captions during training for a sample image, to help gauge progress
-    Generates with greedy approach and sampling at different temp values for comparison
     '''
     def __init__(self, img, captioner):
         super().__init__()
