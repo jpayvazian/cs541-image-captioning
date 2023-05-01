@@ -3,8 +3,8 @@ import evaluate
 from pycocoevalcap.bleu.bleu import Bleu
 from pycocoevalcap.cider.cider import Cider
 from pycocoevalcap.rouge.rouge import Rouge
+from utils import labels_to_json, output_to_json
 import json
-import csv
 import sys
 
 @tf.function
@@ -66,43 +66,6 @@ def meteor(labels, output):
     score = scorer.compute(predictions=output, references=labels)
     print(score)
 
-def make_labels_json(inpath, outpath):
-    # dictionary
-    data = {}
-
-    # use csv reader
-    with open(inpath, encoding='utf-8') as csvf:
-        csvReader = csv.DictReader(csvf)
-
-        i = 0
-        caption_array = []
-        # convert each row into a dictionary
-        for rows in csvReader:
-            if i % 5 == 0:
-                caption_array = []
-            key = rows['image']
-            caption_array.append(rows['caption'])
-            data[key] = caption_array
-            i += 1
-
-    # function to dump data
-    with open(outpath, 'w', encoding='utf-8') as jsonf:
-        jsonf.write(json.dumps(data, indent=4))
-
-def make_output_json(inpath, outpath):
-    # create dictionary
-    dict = {}
-
-    with open(inpath) as fh:
-        for line in fh:
-            image, caption = line.strip().split(",")
-            dict[image] = [caption]
-
-    del dict['image']
-
-    with open(outpath, 'w', encoding='utf-8') as jsonf:
-        jsonf.write(json.dumps(dict, indent=4))
-
 ENCODER_TYPES = ['resnet', 'vit']
 DECODER_TYPES = ['transformer', 'lstm_baseline', 'lstm_attention']
 if __name__ == "__main__":
@@ -123,10 +86,10 @@ if __name__ == "__main__":
     output_json = f'flickr8k/Output/captions_{ENCODER_TYPE}_{DECODER_TYPE}.json'
 
     # labels to json conversion
-    make_labels_json(label_raw, label_json)
+    labels_to_json(label_raw, label_json)
 
     # output to json conversion
-    make_output_json(output_raw, output_json)
+    output_to_json(output_raw, output_json)
 
     # evaluation on metrics
     with open(label_json, 'r') as file:

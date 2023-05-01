@@ -1,5 +1,7 @@
 import numpy as np
 import re
+import csv
+import json
 from collections import Counter
 
 def preprocess_text(text):
@@ -45,3 +47,48 @@ def get_freq(captions, vocab):
     token_freq[vocab["<unk>"]] = 0
 
     return token_freq
+
+def labels_to_json(inpath, outpath):
+    '''
+    Formats labels file to JSON for compatibility with metric evaluation functions
+    Differs from output function since 5 label captions per image
+    :param inpath: path of original labels
+    :param outpath: path to save output file to
+    :return: JSON file
+    '''
+    data = {}
+    with open(inpath, encoding='utf-8') as csvf:
+        csvReader = csv.DictReader(csvf)
+
+        i = 0
+        caption_array = []
+        # convert each row into a dictionary
+        for rows in csvReader:
+            if i % 5 == 0:
+                caption_array = []
+            key = rows['image']
+            caption_array.append(rows['caption'])
+            data[key] = caption_array
+            i += 1
+
+    with open(outpath, 'w', encoding='utf-8') as jsonf:
+        jsonf.write(json.dumps(data, indent=4))
+
+def output_to_json(inpath, outpath):
+    '''
+    Formats output file to JSON for compatibility with metric evaluation functions
+    Differs from label function since only 1 output caption per image
+    :param inpath: path of original outputs
+    :param outpath: path to save output file to
+    :return: JSON file
+    '''
+    data = {}
+    with open(inpath) as fh:
+        for line in fh:
+            image, caption = line.strip().split(",")
+            data[image] = [caption]
+
+    del data['image']
+
+    with open(outpath, 'w', encoding='utf-8') as jsonf:
+        jsonf.write(json.dumps(data, indent=4))
