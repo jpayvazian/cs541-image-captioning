@@ -1,8 +1,6 @@
 # cs541-image-captioning
 Final Project for CS 541: Deep Learning  
-Authors: Jack Ayvazian, Luke Deratzou, Jasmine Laber
-
-[Repo link](https://github.com/jpayvazian/cs541-image-captioning)  
+Authors: Jack Ayvazian, Luke Deratzou, Jasmine Laber  
 [Flickr8k dataset](https://www.kaggle.com/datasets/adityajn105/flickr8k)
 
 File descriptions:
@@ -14,7 +12,7 @@ File descriptions:
 * `eval.py`: Evaluation script with metrics and loss functions
 * `utils.py`: Miscellaneous functions for data cleaning and frequency, feature squashing, json formatting
 
-Included only in repo:
+Included only in [Github repo](https://github.com/jpayvazian/cs541-image-captioning):
 * `flickr8k/`: Labels and Output caption files from evaluation
 * `turing/`: Shell script for training via WPI Turing cluster and example slurm.out training proof  
 

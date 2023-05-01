@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-# adapted from: https://www.tensorflow.org/tutorials/text/image_captioning
 
 class SeqEmbedding(tf.keras.layers.Layer):
     '''

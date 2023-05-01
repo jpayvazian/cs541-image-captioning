@@ -2,7 +2,8 @@ import tensorflow as tf
 
 class Decoder_Baseline(tf.keras.Model):
     '''
-    Baseline LSTM decoder adapted from https://www.kaggle.com/code/quadeer15sh/flickr8k-image-captioning-using-cnns-lstms
+    Baseline LSTM decoder
+    Adapted from https://www.kaggle.com/code/quadeer15sh/flickr8k-image-captioning-using-cnns-lstms
     '''
     def __init__(self, encoder, units, embed_dim, vocab_size, dropout):
         super(Decoder_Baseline, self).__init__()
