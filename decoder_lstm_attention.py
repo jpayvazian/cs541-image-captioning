@@ -16,16 +16,16 @@ class LSTM_Decoder(tf.keras.Model):
         self.d2.smart_init()
 
     def call(self, inputs):
-        features, x, hidden = inputs
+        features, x, hidden, cell = inputs
         context_vector, attn_weights = self.attention(features, hidden)
         x = self.embed(x)
         x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
-        output, state_h, _ = self.lstm(x)
+        output, state_h, state_c = self.lstm(x, initial_state=[hidden, cell])
         x = self.d1(output)
         x = tf.reshape(x, (-1, x.shape[2]))
         x = self.d2(x)
 
-        return x, state_h, attn_weights
+        return x, state_h, state_c, attn_weights
 
     def init_state(self, batch_size):
         return tf.zeros((batch_size, self.units))
@@ -64,12 +64,13 @@ class LSTM_Attention_Model:
     def train_step(self, img_feature, target):
         loss = 0
         hidden = self.decoder.init_state(batch_size=target.shape[0])
+        cell = self.decoder.init_state(batch_size=target.shape[0])
         seq = tf.expand_dims([self.tokenizer.word_index['<start>']] * target.shape[0], 1)
         with tf.GradientTape() as tape:
             features = self.encoder(img_feature)
 
             for i in range(1, target.shape[1]):
-                predictions, hidden, _ = self.decoder((features, seq, hidden))
+                predictions, hidden, cell, _ = self.decoder((features, seq, hidden, cell))
                 loss += self.loss_fcn(target[:, i], predictions)
                 # teacher forcing
                 seq = tf.expand_dims(target[:, i], 1)
@@ -84,11 +85,12 @@ class LSTM_Attention_Model:
     def test_step(self, img_feature, target):
         loss = 0
         hidden = self.decoder.init_state(batch_size=target.shape[0])
+        cell = self.decoder.init_state(batch_size=target.shape[0])
         seq = tf.expand_dims([self.tokenizer.word_index['<start>']] * target.shape[0], 1)
         features = self.encoder(img_feature)
 
         for i in range(1, target.shape[1]):
-            predictions, hidden, _ = self.decoder.predict((features, seq, hidden), verbose=0)
+            predictions, hidden, cell, _ = self.decoder.predict((features, seq, hidden, cell), verbose=0)
             loss += self.loss_fcn(target[:, i], predictions)
             # use predicted token for next time step
             seq = tf.expand_dims(tf.argmax(predictions, axis=1), 1)

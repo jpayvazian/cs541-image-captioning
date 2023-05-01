@@ -26,6 +26,7 @@ class Captioner:
         features = self.features[image]
         if self.decoder_type == "lstm_attention":
             hidden = self.model.decoder.init_state(batch_size=1)
+            cell = self.model.decoder.init_state(batch_size=1)
             features = self.model.encoder(features)
 
         start = [self.tokenizer.word_index['<start>']]
@@ -41,7 +42,7 @@ class Captioner:
                     elif self.decoder_type == 'lstm_baseline':
                         logits = self.model.predict((features, tf.keras.utils.pad_sequences([seq], maxlen=self.max_len, padding='post')), verbose=0)
                     elif self.decoder_type == 'lstm_attention':
-                        logits, hidden, _ = self.model.decoder.predict((features, tf.constant([seq[-1:]]), hidden))
+                        logits, hidden, cell, _ = self.model.decoder.predict((features, tf.constant([seq[-1:]]), hidden, cell))
 
                     scores = tf.math.log(tf.nn.softmax(logits)).numpy()[0]
                     top_k_idx = np.argsort(scores)[-k:]
